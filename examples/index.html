@@ -2,9 +2,12 @@
 <html>
 <head>
   <link rel="stylesheet" href="../node_modules/codemirror/lib/codemirror.css"></link>
+  <link rel="stylesheet" href="../node_modules/codemirror/addon/fold/foldgutter.css"></link>
   <link rel="stylesheet" href="../css/pyret.css"></link>
 
   <script src="../node_modules/codemirror/lib/codemirror.js"></script>
+  <script src="../node_modules/codemirror/addon/fold/foldcode.js"></script>
+  <script src="../node_modules/codemirror/addon/fold/foldgutter.js"></script>
   <script src="../node_modules/codemirror/addon/selection/mark-selection.js"></script>
   <script src="../node_modules/codemirror/addon/runmode/runmode.js"></script>
   <script src="../mode/pyret.js"></script>
@@ -35,6 +38,11 @@ var pyretCM = CodeMirror(document.getElementById("editor"), {
   extraKeys: {
     "Tab": "indentAuto"
   },
+  mode: "pyret",
+  lineNumbers: true,
+  lineWrapping: true,
+  foldGutter: true,
+  gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
   matchKeywords: true,
   matchBrackets: true,
   value:
@@ -71,7 +79,12 @@ var pyretCM = CodeMirror(document.getElementById("editor"), {
 "    { x: 5, y: 10 },\n" +
 "    { x: 11, y: 12}],\n" +
 "  leaf,\n" +
-"  leaf)\n"
+"  leaf)\n" +
+"\n" +
+"# Test for proper folding\n" +
+"{\n" +
+"\n\n\n\n\n\n\n" +
+"}\n"
 });
 registerReindentOnPaste(pyretCM);
 </script>
