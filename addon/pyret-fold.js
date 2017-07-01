@@ -264,7 +264,9 @@
     this.cachedLine = null;
     // Contains regions with continued keywords
     // e.g. will contain both "else if" and ":" tokens
-    if (this.lineToks.length > 0)
+    if (this.current === null)
+      this.curRegion = null;
+    else if (this.lineToks.length > 0)
       this.curRegion = {start: Pos(this.line, this.lineToks[this.current].start),
                         end: Pos(this.line, this.lineToks[this.current].end)};
     else
