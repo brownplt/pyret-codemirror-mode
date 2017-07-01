@@ -231,6 +231,14 @@
     // this.current is the current index in lineToks
     if (ch <= 1){
       this.current = 0;
+      // Skip any leading whitespace
+      while (this.current < this.lineToks.length && !this.lineToks[this.current].type) {
+        ++this.current;
+      }
+      // If the line is all whitespace, then there's no token here.
+      if (this.current >= this.lineToks.length) {
+        this.current = null;
+      }
     } else {
       for (var i = 0; i < this.lineToks.length; i++) {
         if ((this.lineToks[i].start < ch)
@@ -239,12 +247,18 @@
           break;
         }
       }
-    }
-    if (this.current === undefined) {
-      console.warn("TokenTape: Given invalid start ch of "
-                   + ch + ". Defaulting to last.");
-      // Default to last, since this should mean ch was too high
-      this.current = this.lineToks.length - 1;
+      // As a special case, we don't show this warning in the case of
+      // entirely empty lines, since those are handled gracefully by
+      // the folder.
+
+      // TODO: Figure out the edge case we're missing here by not
+      //       skipping whitespace, as done in the `ch <= 1` case
+      if (this.current === undefined) {
+        console.warn("TokenTape: Given invalid start ch of "
+                     + ch + ". Defaulting to last.");
+        // Default to last, since this should mean ch was too high
+        this.current = this.lineToks.length - 1;
+      }
     }
     // Used on line begin/end boundaries
     this.cachedLine = null;
