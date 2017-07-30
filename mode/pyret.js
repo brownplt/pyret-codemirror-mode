@@ -768,7 +768,17 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       }
     } else if (state.lastToken === "end") {
       ls.delimType = pyret_delimiter_type.CLOSING;
-      if (hasTop(ls.tokens, ["OBJECT", "DATA"])) {
+      if (hasTop(ls.tokens, ["FIELD", "OBJECT", "DATA"])) {
+        /* Handles situations such as
+         * data A:
+         *   | a with:
+         *     b : 2 # <- indents as an object field
+         * end
+         */
+        ls.curClosed.f++;
+        ls.tokens.pop();
+        ls.tokens.pop();
+      } else if (hasTop(ls.tokens, ["OBJECT", "DATA"])) {
         //ls.curClosed.o++;
         ls.tokens.pop();
       } else if (hasTop(ls.tokens, ["TABLEROW", "TABLE"])

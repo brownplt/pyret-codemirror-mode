@@ -84,7 +84,17 @@ var pyretCM = CodeMirror(document.getElementById("editor"), {
 "# Test for proper folding\n" +
 "{\n" +
 "\n  \n\n\n  \n\n\n" +
-"}\n"
+"}\n" +
+"\n" +
+"# Regression for brownplt/code.pyret.org#200\n" +
+"data A:\n" +
+"  | a with:\n" +
+"    b : 2\n" +
+"end\n\n" +
+"fun x():\n" +
+"  1\n" +
+"end\n" +
+"\n"
 });
 registerReindentOnPaste(pyretCM);
 </script>
