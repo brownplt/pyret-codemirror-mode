@@ -16,7 +16,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
         pyret_closing_keywords.map(toToken("keyword")).concat(
           pyret_closing_builtins.map(toToken("builtin")));
   const pyret_opening_keywords_colon = ["reactor", "try", "ref-graph", "block", "table", "load-table"];
-  const pyret_opening_keywords_nocolon = ["fun", "when", "for", "if", "let", "ask",
+  const pyret_opening_keywords_nocolon = ["fun", "when", "for", "if", "let", "ask", "spy",
                                           "cases", "data", "shared", "check",
                                           "except", "letrec", "lam", "method",
                                           "examples", "do", "select", "extend", "transform", "extract",
