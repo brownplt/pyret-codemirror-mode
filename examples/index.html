@@ -94,7 +94,21 @@ var pyretCM = CodeMirror(document.getElementById("editor"), {
 "fun x():\n" +
 "  1\n" +
 "end\n" +
-"\n"
+"\n" +
+"# Regression for Shorthand Lambdas\n" +
+"data Foo:\n" +
+"  | bar with:\n" +
+"    method baz(self):\n" +
+"      a = self.x({(v) block:M.func})\n" +
+"    end,\n" +
+"    method bazz(self):\n" +
+"      a = self.x({(v):M.func()})\n" +
+"    end\n" +
+"    method bazzz(self):\n" +
+"      1\n" +
+"    end\n" +
+"  | quux\n" +
+"end\n"
 });
 registerReindentOnPaste(pyretCM);
 </script>
