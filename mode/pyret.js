@@ -438,8 +438,8 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       else if (hasTop(ls.tokens, "OBJECT")
                || hasTop(ls.tokens, "REACTOR")
                || hasTop(ls.tokens, "SHARED")
-               || hasTop(ls.tokens, "OBJECTORTUPLE")) {
-        if (hasTop(ls.tokens, "OBJECTORTUPLE")) {
+               || hasTop(ls.tokens, "BRACEDEXPR")) {
+        if (hasTop(ls.tokens, "BRACEDEXPR")) {
           ls.tokens.pop();
           ls.tokens.push("OBJECT");
         }
@@ -447,7 +447,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
         ls.tokens.push("FIELD", "NEEDSOMETHING");
       }
     } else if (state.lastToken === ";") {
-      if (hasTop(ls.tokens, "OBJECTORTUPLE")) {
+      if (hasTop(ls.tokens, "BRACEDEXPR")) {
         ls.tokens.pop();
         ls.tokens.push("TUPLE");
       }
@@ -482,7 +482,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       ls.deferedOpened.fn++;
       ls.tokens.push("FUN", "WANTCOLONORBLOCK", "WANTCLOSEPAREN", "WANTOPENPAREN");
     } else if (state.lastToken === "method") {
-      if (hasTop(ls.tokens, "OBJECTORTUPLE")) {
+      if (hasTop(ls.tokens, "BRACEDEXPR")) {
         ls.tokens.pop();
         ls.tokens.push("OBJECT");
       }
@@ -724,7 +724,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       }
     } else if (state.lastToken === "{") {
       ls.deferedOpened.o++;
-      ls.tokens.push("OBJECTORTUPLE");
+      ls.tokens.push("BRACEDEXPR");
       ls.delimType = pyret_delimiter_type.OPENING;
     } else if (state.lastToken === "}") {
       ls.delimType = pyret_delimiter_type.CLOSING;
@@ -737,8 +737,9 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
         else ls.curClosed.f++;
       }
       if (hasTop(ls.tokens, "OBJECT")
-          || hasTop(ls.tokens, "OBJECTORTUPLE")
-          || hasTop(ls.tokens, "TUPLE"))
+          || hasTop(ls.tokens, "BRACEDEXPR")
+          || hasTop(ls.tokens, "TUPLE")
+          || hasTop(ls.tokens, "SHORTHANDLAMBDA"))
         ls.tokens.pop();
       while (hasTop(ls.tokens, "VAR")) {
         ls.tokens.pop();
@@ -749,6 +750,9 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       ls.deferedOpened.p++;
       if (hasTop(ls.tokens, "WANTOPENPAREN")) {
         ls.tokens.pop();
+      } else if (hasTop(ls.tokens, "BRACEDEXPR")) {
+        ls.tokens.pop();
+        ls.tokens.push("SHORTHANDLAMBDA", "WANTCOLONORBLOCK");
       } else if (hasTop(ls.tokens, "OBJECT") || hasTop(ls.tokens, "SHARED")) {
         ls.tokens.push("FUN", "WANTCOLONORBLOCK");
         ls.deferedOpened.fn++;
