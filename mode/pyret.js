@@ -16,7 +16,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
         pyret_closing_keywords.map(toToken("keyword")).concat(
           pyret_closing_builtins.map(toToken("builtin")));
   const pyret_opening_keywords_colon = ["reactor", "try", "ref-graph", "block", "table", "load-table"];
-  const pyret_opening_keywords_nocolon = ["fun", "when", "for", "if", "let", "ask",
+  const pyret_opening_keywords_nocolon = ["fun", "when", "for", "if", "let", "ask", "spy",
                                           "cases", "data", "shared", "check",
                                           "except", "letrec", "lam", "method",
                                           "examples", "do", "select", "extend", "transform", "extract",
@@ -26,10 +26,10 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
   const pyret_openers_closed_by_end = {"FUN": true, "WHEN": true, "DO": true,
     "FOR": true, "IF": true, "BLOCK": true, "LET": true, "TABLE": true,
     "LOADTABLE": true, "SELECT": true, "EXTEND": true, "SIEVE": true, "TRANSFORM": true, "EXTRACT": true,
-    "ORDER": true, "REACTOR": true};
+    "ORDER": true, "REACTOR": true, "SPY": true};
   const pyret_keywords =
     wordRegexp(["else if"].concat(pyret_opening_keywords_nocolon, pyret_closing_keywords,
-               ["var", "rec", "import", "include", "type", "newtype",
+               ["spy", "var", "rec", "import", "include", "type", "newtype",
                 "from", "lazy", "shadow", "ref", "of",
                 "and", "or", "as", "else", "cases", "is==", "is=~", "is<=>", "is", "satisfies", "raises",
                 "violates", "by", "ascending", "descending", "sanitize", "using"]));
@@ -522,6 +522,10 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       ls.delimType = pyret_delimiter_type.OPENING;
       ls.deferedOpened.c++;
       ls.tokens.push("IFCOND", "WANTCOLONORBLOCK");
+    } else if (state.lastToken === "spy") {
+      ls.delimType = pyret_delimiter_type.OPENING;
+      ls.deferedOpened.fn++;
+      ls.tokens.push("SPY", "WANTCOLON");
     } else if (state.lastToken === "if") {
       ls.delimType = pyret_delimiter_type.OPENING;
       ls.deferedOpened.fn++;
