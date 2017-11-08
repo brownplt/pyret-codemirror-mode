@@ -390,6 +390,11 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       if (inOpening)
         ls.delimType = pyret_delimiter_type.OPEN_CONTD;
     }*/
+    // Special case: Handle shorthand lambdas correctly
+    if (hasTop(ls.tokens, "BRACEDEXPR") && state.lastToken != "(") {
+      ls.tokens.pop();
+      ls.tokens.push("BRACEDEXPR_NOLAMBDA");
+    }
     // Special case: don't hide function-names when folding
     if ((state.lastToken === "name") && (style === 'function-name')
         && (hasTop(ls.tokens, ["WANTOPENPAREN", "WANTCLOSEPAREN", "WANTCOLONORBLOCK", "FUN"]))) {
@@ -438,8 +443,9 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       else if (hasTop(ls.tokens, "OBJECT")
                || hasTop(ls.tokens, "REACTOR")
                || hasTop(ls.tokens, "SHARED")
-               || hasTop(ls.tokens, "BRACEDEXPR")) {
-        if (hasTop(ls.tokens, "BRACEDEXPR")) {
+               || hasTop(ls.tokens, "BRACEDEXPR")
+               || hasTop(ls.tokens, "BRACEDEXPR_NOLAMBDA")) {
+        if (hasTop(ls.tokens, "BRACEDEXPR") || hasTop(ls.tokens, "BRACEDEXPR_NOLAMBDA")) {
           ls.tokens.pop();
           ls.tokens.push("OBJECT");
         }
@@ -447,7 +453,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
         ls.tokens.push("FIELD", "NEEDSOMETHING");
       }
     } else if (state.lastToken === ";") {
-      if (hasTop(ls.tokens, "BRACEDEXPR")) {
+      if (hasTop(ls.tokens, "BRACEDEXPR") || hasTop(ls.tokens, "BRACEDEXPR_NOLAMBDA")) {
         ls.tokens.pop();
         ls.tokens.push("TUPLE");
       }
@@ -482,7 +488,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       ls.deferedOpened.fn++;
       ls.tokens.push("FUN", "WANTCOLONORBLOCK", "WANTCLOSEPAREN", "WANTOPENPAREN");
     } else if (state.lastToken === "method") {
-      if (hasTop(ls.tokens, "BRACEDEXPR")) {
+      if (hasTop(ls.tokens, "BRACEDEXPR") | hasTop(ls.tokens, "BRACEDEXPR_NOLAMBDA")) {
         ls.tokens.pop();
         ls.tokens.push("OBJECT");
       }
@@ -742,6 +748,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       }
       if (hasTop(ls.tokens, "OBJECT")
           || hasTop(ls.tokens, "BRACEDEXPR")
+          || hasTop(ls.tokens, "BRACEDEXPR_NOLAMBDA")
           || hasTop(ls.tokens, "TUPLE")
           || hasTop(ls.tokens, "SHORTHANDLAMBDA"))
         ls.tokens.pop();

@@ -116,6 +116,18 @@ var pyretCM = CodeMirror(document.getElementById("editor"), {
 "      1\n" +
 "    end\n" +
 "  | quux\n" +
+"end\n\n" +
+"# Regressions for brownplt/pyret-lang#1174\n" +
+"fun x():\n" +
+"  for x(x from {x(x); x}):\n" +
+"    x\n" +
+"  end\n" +
+"end\n" +
+"fun a():\n" +
+"  {a(a)}\n" +
+"  block:\n" +
+"    a\n" +
+"  end\n" +
 "end\n"
 });
 registerReindentOnPaste(pyretCM);
