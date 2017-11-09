@@ -31,6 +31,7 @@ html, body {
 <div id="editor">
 </div>
 <button onclick="reindentAll(pyretCM)">Reindent All</button>
+<pre id="lineState"></pre>
 </body>
 <script src="utils.js"></script>
 <script>
@@ -131,5 +132,8 @@ var pyretCM = CodeMirror(document.getElementById("editor"), {
 "end\n"
 });
 registerReindentOnPaste(pyretCM);
+var lineStateElt = document.getElementById("lineState");
+registerDebugLineState(pyretCM, lineStateElt);
+showLineStateAtPoint(pyretCM, lineStateElt)
 </script>
 </html>
