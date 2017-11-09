@@ -108,7 +108,7 @@ var pyretCM = CodeMirror(document.getElementById("editor"), {
 "    method bazzz(self):\n" +
 "      a = self.x(\n" +
 "        {\n" +
-"          (v):\n" +
+"          (v);\n" +
 "          M.func(\n" +
 "            )}\n" +
 "        )\n" +
@@ -129,7 +129,9 @@ var pyretCM = CodeMirror(document.getElementById("editor"), {
 "  block:\n" +
 "    a\n" +
 "  end\n" +
-"end\n"
+"end\n" +
+"{    (a) anything}\n" +
+"{    (a): anything}\n"
 });
 registerReindentOnPaste(pyretCM);
 var lineStateElt = document.getElementById("lineState");

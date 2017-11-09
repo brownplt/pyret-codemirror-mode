@@ -158,6 +158,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
     const unterminated_string = new RegExp("^[\"\'].*");
 
     var match;
+    state.maybeShorthandLambda = false;
     if ((match = stream.match(dquot_str, true))) {
       return ret(state, 'string', match[0], 'string');
     } else if ((match = stream.match(squot_str, true))) {
@@ -173,6 +174,11 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       return ret(state, match[0], match[0], 'builtin');
     }
     // Level 1
+    if ((match = stream.match(/^({\()/, true))) {
+      state.maybeShorthandLambda = true;
+      stream.backUp(1);
+      return ret(state, '{', '{', 'builtin');
+    }
     if ((match = stream.match(pyret_double_punctuation, true)) ||
         (match = stream.match(pyret_single_punctuation, true))) {
       if (state.dataNoPipeColon && (match[0] == ":" || match[0] == "|"))
@@ -390,11 +396,6 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       if (inOpening)
         ls.delimType = pyret_delimiter_type.OPEN_CONTD;
     }*/
-    // Special case: Handle shorthand lambdas correctly
-    if (hasTop(ls.tokens, "BRACEDEXPR") && state.lastToken != "(") {
-      ls.tokens.pop();
-      ls.tokens.push("BRACEDEXPR_NOLAMBDA");
-    }
     // Special case: don't hide function-names when folding
     if ((state.lastToken === "name") && (style === 'function-name')
         && (hasTop(ls.tokens, ["WANTOPENPAREN", "WANTCLOSEPAREN", "WANTCOLONORBLOCK", "FUN"]))) {
@@ -734,7 +735,10 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       }
     } else if (state.lastToken === "{") {
       ls.deferedOpened.o++;
-      ls.tokens.push("BRACEDEXPR");
+      if (state.maybeShorthandLambda)
+        ls.tokens.push("BRACEDEXPR");
+      else
+        ls.tokens.push("BRACEDEXPR_NOLAMBDA");
       ls.delimType = pyret_delimiter_type.OPENING;
     } else if (state.lastToken === "}") {
       ls.delimType = pyret_delimiter_type.CLOSING;
@@ -900,7 +904,8 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
              lastToken: oldState.lastToken, lastContent: oldState.lastContent,
              commentNestingDepth: oldState.commentNestingDepth, inString: oldState.inString,
              dataNoPipeColon: oldState.dataNoPipeColon,
-             sol: oldState.sol
+             sol: oldState.sol,
+             maybeShorthandLambda: oldState.maybeShorthandLambda
            };
   }
 
