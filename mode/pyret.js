@@ -174,9 +174,8 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       return ret(state, match[0], match[0], 'builtin');
     }
     // Level 1
-    if ((match = stream.match(/^({\()/, true))) {
+    if ((match = stream.match(/^({(?=\())/, true))) {
       state.maybeShorthandLambda = true;
-      stream.backUp(1);
       return ret(state, '{', '{', 'builtin');
     }
     if ((match = stream.match(pyret_double_punctuation, true)) ||
