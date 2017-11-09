@@ -488,7 +488,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       ls.deferedOpened.fn++;
       ls.tokens.push("FUN", "WANTCOLONORBLOCK", "WANTCLOSEPAREN", "WANTOPENPAREN");
     } else if (state.lastToken === "method") {
-      if (hasTop(ls.tokens, "BRACEDEXPR") | hasTop(ls.tokens, "BRACEDEXPR_NOLAMBDA")) {
+      if (hasTop(ls.tokens, "BRACEDEXPR") || hasTop(ls.tokens, "BRACEDEXPR_NOLAMBDA")) {
         ls.tokens.pop();
         ls.tokens.push("OBJECT");
       }
