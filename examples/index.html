@@ -131,7 +131,12 @@ var pyretCM = CodeMirror(document.getElementById("editor"), {
 "  end\n" +
 "end\n" +
 "{    (a) anything}\n" +
-"{    (a): anything}\n"
+"{    (a): anything}\n" +
+"\n" +
+"# Regression for brownplt/pyret-lang#1276\n" +
+"type-let t1 = Number, t2 = String:\n" +
+"  a :: t1 = 5\n" +
+"end\n"
 });
 registerReindentOnPaste(pyretCM);
 var lineStateElt = document.getElementById("lineState");

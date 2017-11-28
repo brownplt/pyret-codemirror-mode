@@ -16,7 +16,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
         pyret_closing_keywords.map(toToken("keyword")).concat(
           pyret_closing_builtins.map(toToken("builtin")));
   const pyret_opening_keywords_colon = ["reactor", "try", "ref-graph", "block", "table", "load-table"];
-  const pyret_opening_keywords_nocolon = ["fun", "when", "for", "if", "let", "ask", "spy",
+  const pyret_opening_keywords_nocolon = ["fun", "when", "for", "if", "let", "type-let", "ask", "spy",
                                           "cases", "data", "shared", "check",
                                           "except", "letrec", "lam", "method",
                                           "examples", "do", "select", "extend", "transform", "extract",
@@ -71,7 +71,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
   const pyret_subkeywords = {
     "if": ["block", "else if", "else"], "when": ["block"],
     "fun": ["block", "where"], "method": ["block", "where"], "lam": ["block"],
-    "for": ["block", "do"], "let": ["block"], "letrec": ["block"],
+    "for": ["block", "do"], "let": ["block"], "letrec": ["block"], "type-let": ["block"],
     "cases": ["block"], "ask": ["block", "then", "otherwise"],
     "data": ["sharing", "where"], "table": ["row"], "load-table": ["sanitize", "source"]
   };
@@ -495,7 +495,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       ls.delimType = pyret_delimiter_type.OPENING;
       ls.deferedOpened.fn++;
       ls.tokens.push("FUN", "WANTCOLONORBLOCK", "WANTCLOSEPAREN", "WANTOPENPAREN");
-    } else if (state.lastToken === "let" || state.lastToken === "letrec") {
+    } else if (state.lastToken === "let" || state.lastToken === "letrec" || state.lastToken === "type-let") {
       ls.delimType = pyret_delimiter_type.OPENING;
       ls.deferedOpened.fn++;
       ls.tokens.push("LET", "WANTCOLONORBLOCK");
