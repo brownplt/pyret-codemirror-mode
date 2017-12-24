@@ -75,4 +75,120 @@
       if (other) cm.extendSelection(other.to, other.from);
     }
   };
+
+  function nextNonblankTokenAfter(cm, pos, allowAtCurrent) {
+    var line = pos.line;
+    var toks = cm.getLineTokens(line);
+    if (allowAtCurrent) {
+      for (var i = 0; i < toks.length; i++) {
+        if (toks[i].start == pos.ch && toks.type) {
+          toks[i].line = line;
+          return toks[i];
+        }
+      }
+    }
+    for (var i = 0; i < toks.length; i++) {
+      if (toks[i].start <= pos.ch && toks[i].end > pos.ch) {
+        if (toks[i].type) i++;
+        for (; i < toks.length; i++) {
+          if (toks[i].type) {
+            toks[i].line = line;
+            return toks[i];
+          }
+        }
+      }
+    }
+    for (line = line + 1; line <= cm.lastLine(); line++) {
+      var toks = cm.getLineTokens(line);
+      for (var i = 0; i < toks.length; i++) {
+        if (toks[i].type) {
+          toks[i].line = line;
+          return toks[i];
+        }
+      }
+    }
+    return undefined;
+  }
+  function prevNonblankTokenBefore(cm, pos) {
+    var line = pos.line;
+    var toks = cm.getLineTokens(line);
+    for (var i = toks.length - 1; i >= 0; i--) {
+      if (toks[i].start < pos.ch && toks[i].end >= pos.ch) {
+        if (toks[i].type) i--;
+        for (; i >= 0; i--) {
+          if (toks[i].type) {
+            toks[i].line = line;
+            return toks[i];
+          }
+        }
+      }
+    }
+    for (line = line - 1; line >= cm.firstLine(); line--) {
+      var toks = cm.getLineTokens(line);
+      for (var i = toks.length - 1; i >= 0; i--) {
+        if (toks[i].type) {
+          toks[i].line = line;
+          return toks[i];
+        }
+      }
+    }
+    return undefined;
+  }
+  CodeMirror.commands.goBackwardSexp = function(cm) {
+    var cursor = cm.getCursor();
+    var found = CodeMirror.findMatchingKeyword(cm, cursor);
+    if (found && found.open.from.line == cursor.line && found.open.from.ch == cursor.ch) {
+      var prev = prevNonblankTokenBefore(cm, cursor);
+      if (prev) {
+        prev.ch = prev.start;
+        found = CodeMirror.findMatchingKeyword(cm, prev);
+      }
+    }
+    if (found) {
+      cm.extendSelection(found.open.from, found.open.from);
+    } else {
+      CodeMirror.commands.goBackwardToken(cm);
+    }
+  };
+  CodeMirror.commands.goForwardSexp = function(cm) {
+    var cursor = cm.getCursor();
+    var found = CodeMirror.findMatchingKeyword(cm, cursor);
+    if (found && found.close.to.line == cursor.line && found.close.to.ch == cursor.ch) {
+      var next = nextNonblankTokenAfter(cm, cursor);
+      if (next) {
+        next.ch = next.end;
+        found = CodeMirror.findMatchingKeyword(cm, next);
+      }
+    }
+    if (found) {
+      cm.extendSelection(found.close.to, found.close.to);
+    } else {
+      CodeMirror.commands.goForwardToken(cm);
+    }
+  };
+  CodeMirror.commands.goBackwardToken = function(cm) {
+    var cursor = cm.getCursor();
+    var cur = cm.getTokenAt(cursor);
+    var pos;
+    if (cur.type && cur.start < cursor.ch) {
+      pos = {line: cursor.line, ch: cur.start};
+    } else {
+      var prev = prevNonblankTokenBefore(cm, cursor);
+      pos = {line: prev.line, ch: prev.start};
+    }
+    cm.extendSelection(pos, pos);
+  };
+  CodeMirror.commands.goForwardToken = function(cm) {
+    var cursor = cm.getCursor();
+    var cur = cm.getTokenAt(cursor);
+    if (!cur.type) { cur = nextNonblankTokenAfter(cm, cursor, true); }
+    var pos;
+    if (cur.type && cur.end > cursor.ch) {
+      pos = {line: cursor.line, ch: cur.end};
+    } else {
+      var next = nextNonblankTokenAfter(cm, cursor);
+      pos = {line: next.line, ch: next.end};
+    }
+    cm.extendSelection(pos, pos);
+  };
 });
