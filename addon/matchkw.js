@@ -81,7 +81,7 @@
     var toks = cm.getLineTokens(line);
     if (allowAtCurrent) {
       for (var i = 0; i < toks.length; i++) {
-        if (toks[i].start == pos.ch && toks.type) {
+        if (toks[i].start == pos.ch && toks[i].type) {
           toks[i].line = line;
           return toks[i];
         }
