@@ -76,12 +76,16 @@
     }
   };
 
+  function nonBlankToken(tok) {
+    return !(tok.type === null || /^\s*$/.test(tok.string));
+  }
+  
   function nextNonblankTokenAfter(cm, pos, allowAtCurrent) {
     var line = pos.line;
     var toks = cm.getLineTokens(line);
     if (allowAtCurrent) {
       for (var i = 0; i < toks.length; i++) {
-        if (toks[i].start == pos.ch && toks[i].type) {
+        if (toks[i].start == pos.ch && nonBlankToken(toks[i])) {
           toks[i].line = line;
           return toks[i];
         }
@@ -89,9 +93,9 @@
     }
     for (var i = 0; i < toks.length; i++) {
       if (toks[i].start <= pos.ch && toks[i].end > pos.ch) {
-        if (toks[i].type) i++;
+        if (nonBlankToken(toks[i])) i++;
         for (; i < toks.length; i++) {
-          if (toks[i].type) {
+          if (nonBlankToken(toks[i])) {
             toks[i].line = line;
             return toks[i];
           }
@@ -101,7 +105,7 @@
     for (line = line + 1; line <= cm.lastLine(); line++) {
       var toks = cm.getLineTokens(line);
       for (var i = 0; i < toks.length; i++) {
-        if (toks[i].type) {
+        if (nonBlankToken(toks[i])) {
           toks[i].line = line;
           return toks[i];
         }
@@ -114,9 +118,9 @@
     var toks = cm.getLineTokens(line);
     for (var i = toks.length - 1; i >= 0; i--) {
       if (toks[i].start < pos.ch && toks[i].end >= pos.ch) {
-        if (toks[i].type) i--;
+        if (nonBlankToken(toks[i])) i--;
         for (; i >= 0; i--) {
-          if (toks[i].type) {
+          if (nonBlankToken(toks[i])) {
             toks[i].line = line;
             return toks[i];
           }
@@ -126,7 +130,7 @@
     for (line = line - 1; line >= cm.firstLine(); line--) {
       var toks = cm.getLineTokens(line);
       for (var i = toks.length - 1; i >= 0; i--) {
-        if (toks[i].type) {
+        if (nonBlankToken(toks[i])) {
           toks[i].line = line;
           return toks[i];
         }
@@ -134,11 +138,78 @@
     }
     return undefined;
   }
+  function goToOpenComment(cm, pos, nestingDepth) {
+    var line = pos.line;
+    var toks = cm.getLineTokens(line);
+    for (var i = toks.length - 1; i >= 0; i--) {
+      if (toks[i].start < pos.ch
+          && toks[i].state.lastToken === "COMMENT-START"
+          && toks[i].state.commentNestingDepth == nestingDepth) {
+        var pos = {line: line, ch: toks[i].start};
+        cm.extendSelection(pos, pos);
+        return;
+      }
+    }
+    for (line = line - 1; line >= cm.firstLine(); line--) {
+      var toks = cm.getLineTokens(line);
+      for (var i = toks.length - 1; i >= 0; i--) {
+        if (toks[i].state.lastToken === "COMMENT-START"
+            && toks[i].state.commentNestingDepth == nestingDepth) {
+          var pos = {line: line, ch: toks[i].start};
+          cm.extendSelection(pos, pos);
+          return;
+        }
+      }
+    }
+    var pos = {line: cm.firstLine(), ch: 0};
+    cm.extendSelection(pos, pos);
+  }
+  function goToCloseComment(cm, pos, nestingDepth) {
+    var line = pos.line;
+    var toks = cm.getLineTokens(line);
+    for (var i = 0; i < toks.length; i++) {
+      if (toks[i].start > pos.ch
+          && toks[i].state.lastToken === "COMMENT-END"
+          && toks[i].state.commentNestingDepth == nestingDepth - 1) {
+        var pos = {line: line, ch: toks[i].end};
+        cm.extendSelection(pos, pos);
+        return;
+      }
+    }
+    for (line = line + 1; line <= cm.lastLine(); line++) {
+      var toks = cm.getLineTokens(line);
+      for (var i = 0; i < toks.length; i++) {
+        if (toks[i].state.lastToken === "COMMENT-END"
+            && toks[i].state.commentNestingDepth == nestingDepth - 1) {
+          var pos = {line: line, ch: toks[i].end};
+          cm.extendSelection(pos, pos);
+          return;
+        }
+      }
+    }
+    var pos = {line: cm.lastLine(), ch: null};
+    cm.extendSelection(pos, pos);
+  }
   CodeMirror.commands.goBackwardSexp = function(cm) {
     var cursor = cm.getCursor();
+    var cur = cm.getTokenAt(cursor);
+    var prev = prevNonblankTokenBefore(cm, cursor);
+    if (prev &&
+        ((cursor.ch === cur.start) // we're at the start of this token and should really be at the previous
+         || (prev.state.lastToken === "COMMENT-END"))) {
+      cur = prev;
+      cursor = {line: prev.line, ch: prev.start};
+    }
+    if (cur && cur.type === "comment") {
+      if (cur.state.lastToken === "COMMENT-END") {
+        goToOpenComment(cm, cursor, cur.state.commentNestingDepth + 1);
+        return;
+      } else {
+        // line comment or inside block comment; do usual token thing
+      }
+    }
     var found = CodeMirror.findMatchingKeyword(cm, cursor);
     if (found && found.open.from.line == cursor.line && found.open.from.ch == cursor.ch) {
-      var prev = prevNonblankTokenBefore(cm, cursor);
       if (prev) {
         prev.ch = prev.start;
         found = CodeMirror.findMatchingKeyword(cm, prev);
@@ -152,9 +223,25 @@
   };
   CodeMirror.commands.goForwardSexp = function(cm) {
     var cursor = cm.getCursor();
+    var cur = cm.getTokenAt(cursor);
+    var next = nextNonblankTokenAfter(cm, cursor, true);
+    if (next &&
+        ((cursor.ch === cur.end) // we're done with this token; we should be on the next one
+         || (next.start === cursor.ch && next.line === cur.line) // we're really at the start of the next one
+         || (next.state.lastToken === "COMMENT-START"))) {
+      cur = next; // needed because getTokenAt is left-biased
+      cursor = {line: next.line, ch: next.start};
+    }
+    if (cur && cur.type === "comment") {
+      if (cur.state.lastToken === "COMMENT-START") {
+        goToCloseComment(cm, cursor, cur.state.commentNestingDepth);
+        return;
+      } else {
+        // line comment or inside block comment; do usual token thing
+      }
+    }
     var found = CodeMirror.findMatchingKeyword(cm, cursor);
     if (found && found.close.to.line == cursor.line && found.close.to.ch == cursor.ch) {
-      var next = nextNonblankTokenAfter(cm, cursor);
       if (next) {
         next.ch = next.end;
         found = CodeMirror.findMatchingKeyword(cm, next);
@@ -170,10 +257,13 @@
     var cursor = cm.getCursor();
     var cur = cm.getTokenAt(cursor);
     var pos;
+    if (!cur) return;
+    if (cur.type === "comment") { CodeMirror.commands.goWordLeft(cm); return; }
     if (cur.type && cur.start < cursor.ch) {
       pos = {line: cursor.line, ch: cur.start};
     } else {
       var prev = prevNonblankTokenBefore(cm, cursor);
+      if (!prev) return;
       pos = {line: prev.line, ch: prev.start};
     }
     cm.extendSelection(pos, pos);
@@ -181,12 +271,36 @@
   CodeMirror.commands.goForwardToken = function(cm) {
     var cursor = cm.getCursor();
     var cur = cm.getTokenAt(cursor);
-    if (!cur.type) { cur = nextNonblankTokenAfter(cm, cursor, true); }
+    var next = nextNonblankTokenAfter(cm, cursor, true);
     var pos;
+    if (next &&
+        ((cursor.ch === cur.end) // we're done with this token; we should be on the next one
+         || (next.start === cursor.ch && next.line === cur.line))) {
+      cur = next;
+      cursor = {line: next.line, ch: next.start};
+    }
+    if (cur) {
+      if (!nonBlankToken(cur)) { cur = nextNonblankTokenAfter(cm, cursor, true); }
+      else if (cur.type === "comment") {
+        var index = cursor.ch - cur.start;
+        for (; index < cur.string.length; index++) {
+          if (cur.string[index] !== " " && cur.string[index] !== "\t"
+              && (cur.string[index + 1] === " " || cur.string[index + 1] == "\t")) {
+            index++;
+            break;
+          }
+        }
+        pos = {line: cursor.line, ch: cur.start + index};
+        cm.extendSelection(pos, pos);
+        return;
+      }
+    }
+    if (!cur) return;
     if (cur.type && cur.end > cursor.ch) {
       pos = {line: cursor.line, ch: cur.end};
     } else {
       var next = nextNonblankTokenAfter(cm, cursor);
+      if (!next) return;
       pos = {line: next.line, ch: next.end};
     }
     cm.extendSelection(pos, pos);
