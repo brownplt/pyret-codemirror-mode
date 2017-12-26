@@ -146,14 +146,14 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
                  "\\\\[01234567]{1,3}" +
                  "|\\\\x[0-9a-fA-F]{1,2}" +
                  "|\\\\u[0-9a-fA-f]{1,4}" +
-                 "|\\\\[\\\\bnrt\"\']" +
+                 "|\\\\[\\\\nrt\"\']" +
                  "|[^\\\\\"\n\r])*\"");
     const squot_str =
       new RegExp("^\'(?:" +
                  "\\\\[01234567]{1,3}" +
                  "|\\\\x[0-9a-fA-F]{1,2}" +
                  "|\\\\u[0-9a-fA-f]{1,4}" +
-                 "|\\\\[\\\\bnrt\"\']" +
+                 "|\\\\[\\\\nrt\"\']" +
                  "|[^\\\\\'\n\r])*\'");
     const unterminated_string = new RegExp("^[\"\'].*");
 
