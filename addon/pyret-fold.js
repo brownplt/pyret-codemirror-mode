@@ -904,6 +904,9 @@
     var startType = start.state.lineState.delimType;
     switch(startType) {
     case DELIMTYPES.NONE:
+      if (ttape.dbg) {
+        ttape.dbg.writeLn("Invalid delimiter type.");
+      }
       return {
         ttape: ttape,
         didNotMatch: true
