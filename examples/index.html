@@ -40,7 +40,13 @@ html, body {
 <script>
 var pyretCM = CodeMirror(document.getElementById("editor"), {
   extraKeys: {
-    "Tab": "indentAuto"
+    "Tab": "indentAuto",
+    "Esc Left": "goBackwardSexp",
+    "Alt-Left": "goBackwardSexp",
+    "Esc Right": "goForwardSexp",
+    "Alt-Right": "goForwardSexp",
+    "Ctrl-Left": "goBackwardToken",
+    "Ctrl-Right": "goForwardToken"
   },
   mode: "pyret",
   lineNumbers: true,
