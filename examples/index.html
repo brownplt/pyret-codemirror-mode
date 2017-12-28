@@ -5,6 +5,7 @@
   <link rel="stylesheet" href="../node_modules/codemirror/addon/fold/foldgutter.css"></link>
   <link rel="stylesheet" href="../css/pyret.css"></link>
 
+  <script src="utils.js"></script>
   <script src="../node_modules/codemirror/lib/codemirror.js"></script>
   <script src="../node_modules/codemirror/addon/fold/foldcode.js"></script>
   <script src="../node_modules/codemirror/addon/fold/foldgutter.js"></script>
@@ -31,9 +32,11 @@ html, body {
 <div id="editor">
 </div>
 <button onclick="reindentAll(pyretCM)">Reindent All</button>
+<button onclick="toggleElement('lineState')">Toggle LineState Info</button>
+<button onclick="toggleElement('internal')">Toggle Internal Debug Info</button>
 <pre id="lineState"></pre>
+<pre id="internal"></pre>
 </body>
-<script src="utils.js"></script>
 <script>
 var pyretCM = CodeMirror(document.getElementById("editor"), {
   extraKeys: {
@@ -136,8 +139,20 @@ var pyretCM = CodeMirror(document.getElementById("editor"), {
 "# Regression for brownplt/pyret-lang#1276\n" +
 "type-let t1 = Number, t2 = String:\n" +
 "  a :: t1 = 5\n" +
-"end\n"
+"end\n" +
+"\n" +
+"# Tests for matching\n" +
+"fun foo():\n" +
+"  fun f() -> (String -> Number):\n" +
+"    lam(_): 1 end\n" +
+"  where:\n" +
+"    foobar is baz\n" +
+"  end\n" +
+"end\n" +
+"fun foo(): lam(): 1 end end\n" +
+"fun bar():    lam(): 1 end end\n"
 });
+registerDebugInternal(document.getElementById("internal"));
 registerReindentOnPaste(pyretCM);
 var lineStateElt = document.getElementById("lineState");
 registerDebugLineState(pyretCM, lineStateElt);
