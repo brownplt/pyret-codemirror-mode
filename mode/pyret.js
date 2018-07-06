@@ -32,7 +32,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
                ["spy", "var", "rec", "import", "include", "type", "newtype",
                 "from", "lazy", "shadow", "ref", "of",
                 "and", "or", "as", "else", "cases", "is==", "is=~", "is<=>", "is", "satisfies", "raises",
-                "violates", "by", "ascending", "descending", "sanitize", "using"]));
+                "violates", "by", "ascending", "descending", "sanitize", "using", "because"]));
   const pyret_booleans = wordRegexp(["true", "false"]);
   const pyret_keywords_hyphen =
     wordRegexp(["provide-types", "type-let", "does-not-raise", "raises-violates",
@@ -48,7 +48,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
   const initial_operators = { "-": true, "+": true, "*": true, "/": true, "<": true, "<=": true,
                               ">": true, ">=": true, "==": true, "<>": true, ".": true, "^": true,
                               "<=>": true, "=~": true,
-                              "is": true, "is==": true, "is=~": true, "is<=>": true,
+                              "is": true, "is==": true, "is=~": true, "is<=>": true, "because": true,
                               "is-roughly": true, "is-not": true, "is-not==": true, "is-not=~": true, "is-not<=>": true,
                               "satisfies": true, "violates": true, "raises": true, "raises-other-than": true,
                               "does-not-raise": true, "raises-satisfies": true, "raises-violates": true
