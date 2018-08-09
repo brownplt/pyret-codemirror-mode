@@ -31,6 +31,7 @@ html, body {
 <div id="editor">
 </div>
 <button onclick="reindentAll(pyretCM)">Reindent All</button>
+<pre id="lineState"></pre>
 </body>
 <script src="utils.js"></script>
 <script>
@@ -107,7 +108,7 @@ var pyretCM = CodeMirror(document.getElementById("editor"), {
 "    method bazzz(self):\n" +
 "      a = self.x(\n" +
 "        {\n" +
-"          (v):\n" +
+"          (v);\n" +
 "          M.func(\n" +
 "            )}\n" +
 "        )\n" +
@@ -116,8 +117,30 @@ var pyretCM = CodeMirror(document.getElementById("editor"), {
 "      1\n" +
 "    end\n" +
 "  | quux\n" +
+"end\n\n" +
+"# Regressions for brownplt/pyret-lang#1174\n" +
+"fun x():\n" +
+"  for x(x from {x(x); x}):\n" +
+"    x\n" +
+"  end\n" +
+"end\n" +
+"fun a():\n" +
+"  {a(a)}\n" +
+"  block:\n" +
+"    a\n" +
+"  end\n" +
+"end\n" +
+"{    (a) anything}\n" +
+"{    (a): anything}\n" +
+"\n" +
+"# Regression for brownplt/pyret-lang#1276\n" +
+"type-let t1 = Number, t2 = String:\n" +
+"  a :: t1 = 5\n" +
 "end\n"
 });
 registerReindentOnPaste(pyretCM);
+var lineStateElt = document.getElementById("lineState");
+registerDebugLineState(pyretCM, lineStateElt);
+showLineStateAtPoint(pyretCM, lineStateElt)
 </script>
 </html>

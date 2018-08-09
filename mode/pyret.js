@@ -16,7 +16,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
         pyret_closing_keywords.map(toToken("keyword")).concat(
           pyret_closing_builtins.map(toToken("builtin")));
   const pyret_opening_keywords_colon = ["reactor", "try", "ref-graph", "block", "table", "load-table"];
-  const pyret_opening_keywords_nocolon = ["fun", "when", "for", "if", "let", "ask", "spy",
+  const pyret_opening_keywords_nocolon = ["fun", "when", "for", "if", "let", "type-let", "ask", "spy",
                                           "cases", "data", "shared", "check",
                                           "except", "letrec", "lam", "method",
                                           "examples", "do", "select", "extend", "transform", "extract",
@@ -32,7 +32,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
                ["spy", "var", "rec", "import", "include", "type", "newtype",
                 "from", "lazy", "shadow", "ref", "of",
                 "and", "or", "as", "else", "cases", "is==", "is=~", "is<=>", "is", "satisfies", "raises",
-                "violates", "by", "ascending", "descending", "sanitize", "using"]));
+                "violates", "by", "ascending", "descending", "sanitize", "using", "because"]));
   const pyret_booleans = wordRegexp(["true", "false"]);
   const pyret_keywords_hyphen =
     wordRegexp(["provide-types", "type-let", "does-not-raise", "raises-violates",
@@ -48,7 +48,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
   const initial_operators = { "-": true, "+": true, "*": true, "/": true, "<": true, "<=": true,
                               ">": true, ">=": true, "==": true, "<>": true, ".": true, "^": true,
                               "<=>": true, "=~": true,
-                              "is": true, "is==": true, "is=~": true, "is<=>": true,
+                              "is": true, "is==": true, "is=~": true, "is<=>": true, "because": true,
                               "is-roughly": true, "is-not": true, "is-not==": true, "is-not=~": true, "is-not<=>": true,
                               "satisfies": true, "violates": true, "raises": true, "raises-other-than": true,
                               "does-not-raise": true, "raises-satisfies": true, "raises-violates": true
@@ -71,7 +71,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
   const pyret_subkeywords = {
     "if": ["block", "else if", "else"], "when": ["block"],
     "fun": ["block", "where"], "method": ["block", "where"], "lam": ["block"],
-    "for": ["block", "do"], "let": ["block"], "letrec": ["block"],
+    "for": ["block", "do"], "let": ["block"], "letrec": ["block"], "type-let": ["block"],
     "cases": ["block"], "ask": ["block", "then", "otherwise"],
     "data": ["sharing", "where"], "table": ["row"], "load-table": ["sanitize", "source"]
   };
@@ -146,18 +146,19 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
                  "\\\\[01234567]{1,3}" +
                  "|\\\\x[0-9a-fA-F]{1,2}" +
                  "|\\\\u[0-9a-fA-f]{1,4}" +
-                 "|\\\\[\\\\bnrt\"\']" +
+                 "|\\\\[\\\\nrt\"\']" +
                  "|[^\\\\\"\n\r])*\"");
     const squot_str =
       new RegExp("^\'(?:" +
                  "\\\\[01234567]{1,3}" +
                  "|\\\\x[0-9a-fA-F]{1,2}" +
                  "|\\\\u[0-9a-fA-f]{1,4}" +
-                 "|\\\\[\\\\bnrt\"\']" +
+                 "|\\\\[\\\\nrt\"\']" +
                  "|[^\\\\\'\n\r])*\'");
     const unterminated_string = new RegExp("^[\"\'].*");
 
     var match;
+    state.maybeShorthandLambda = false;
     if ((match = stream.match(dquot_str, true))) {
       return ret(state, 'string', match[0], 'string');
     } else if ((match = stream.match(squot_str, true))) {
@@ -173,6 +174,10 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       return ret(state, match[0], match[0], 'builtin');
     }
     // Level 1
+    if ((match = stream.match(/^({(?=\())/, true))) {
+      state.maybeShorthandLambda = true;
+      return ret(state, '{', '{', 'builtin');
+    }
     if ((match = stream.match(pyret_double_punctuation, true)) ||
         (match = stream.match(pyret_single_punctuation, true))) {
       if (state.dataNoPipeColon && (match[0] == ":" || match[0] == "|"))
@@ -438,8 +443,9 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       else if (hasTop(ls.tokens, "OBJECT")
                || hasTop(ls.tokens, "REACTOR")
                || hasTop(ls.tokens, "SHARED")
-               || hasTop(ls.tokens, "BRACEDEXPR")) {
-        if (hasTop(ls.tokens, "BRACEDEXPR")) {
+               || hasTop(ls.tokens, "BRACEDEXPR")
+               || hasTop(ls.tokens, "BRACEDEXPR_NOLAMBDA")) {
+        if (hasTop(ls.tokens, "BRACEDEXPR") || hasTop(ls.tokens, "BRACEDEXPR_NOLAMBDA")) {
           ls.tokens.pop();
           ls.tokens.push("OBJECT");
         }
@@ -447,7 +453,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
         ls.tokens.push("FIELD", "NEEDSOMETHING");
       }
     } else if (state.lastToken === ";") {
-      if (hasTop(ls.tokens, "BRACEDEXPR")) {
+      if (hasTop(ls.tokens, "BRACEDEXPR") || hasTop(ls.tokens, "BRACEDEXPR_NOLAMBDA")) {
         ls.tokens.pop();
         ls.tokens.push("TUPLE");
       }
@@ -482,14 +488,14 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       ls.deferedOpened.fn++;
       ls.tokens.push("FUN", "WANTCOLONORBLOCK", "WANTCLOSEPAREN", "WANTOPENPAREN");
     } else if (state.lastToken === "method") {
-      if (hasTop(ls.tokens, "BRACEDEXPR")) {
+      if (hasTop(ls.tokens, "BRACEDEXPR") || hasTop(ls.tokens, "BRACEDEXPR_NOLAMBDA")) {
         ls.tokens.pop();
         ls.tokens.push("OBJECT");
       }
       ls.delimType = pyret_delimiter_type.OPENING;
       ls.deferedOpened.fn++;
       ls.tokens.push("FUN", "WANTCOLONORBLOCK", "WANTCLOSEPAREN", "WANTOPENPAREN");
-    } else if (state.lastToken === "let" || state.lastToken === "letrec") {
+    } else if (state.lastToken === "let" || state.lastToken === "letrec" || state.lastToken === "type-let") {
       ls.delimType = pyret_delimiter_type.OPENING;
       ls.deferedOpened.fn++;
       ls.tokens.push("LET", "WANTCOLONORBLOCK");
@@ -728,7 +734,10 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       }
     } else if (state.lastToken === "{") {
       ls.deferedOpened.o++;
-      ls.tokens.push("BRACEDEXPR");
+      if (state.maybeShorthandLambda)
+        ls.tokens.push("BRACEDEXPR");
+      else
+        ls.tokens.push("BRACEDEXPR_NOLAMBDA");
       ls.delimType = pyret_delimiter_type.OPENING;
     } else if (state.lastToken === "}") {
       ls.delimType = pyret_delimiter_type.CLOSING;
@@ -742,6 +751,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       }
       if (hasTop(ls.tokens, "OBJECT")
           || hasTop(ls.tokens, "BRACEDEXPR")
+          || hasTop(ls.tokens, "BRACEDEXPR_NOLAMBDA")
           || hasTop(ls.tokens, "TUPLE")
           || hasTop(ls.tokens, "SHORTHANDLAMBDA"))
         ls.tokens.pop();
@@ -893,7 +903,8 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
              lastToken: oldState.lastToken, lastContent: oldState.lastContent,
              commentNestingDepth: oldState.commentNestingDepth, inString: oldState.inString,
              dataNoPipeColon: oldState.dataNoPipeColon,
-             sol: oldState.sol
+             sol: oldState.sol,
+             maybeShorthandLambda: oldState.maybeShorthandLambda
            };
   }
 
