@@ -9,7 +9,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
     };
   }
 
-  const pyret_indent_regex = new RegExp("^[a-zA-Z_][a-zA-Z0-9$_\\-]*");
+  const pyret_ident_regex = new RegExp("^[a-zA-Z_][a-zA-Z0-9$_\\-]*");
   const pyret_closing_keywords = ["end"];
   const pyret_closing_builtins = [];
   const pyret_closing_tokens =
@@ -202,7 +202,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
         return ret(state, 'name', match[0], 'variable');
     }
     // Level 2
-    if ((match = stream.match(pyret_indent_regex))) {
+    if ((match = stream.match(pyret_ident_regex))) {
       if (state.lastToken === "|" || state.lastToken === "::" || state.lastToken === "data"
           || state.dataNoPipeColon) {
         state.dataNoPipeColon = false;
