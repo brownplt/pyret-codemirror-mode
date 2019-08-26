@@ -1,3 +1,5 @@
+import CodeMirror from 'codemirror';
+
 CodeMirror.defineMode("pyret", function(config, parserConfig) {
   var ERRORCLASS = 'error';
   function wordRegexp(words) {
