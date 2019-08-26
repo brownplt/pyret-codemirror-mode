@@ -378,7 +378,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
     //return pyret_unprefixed_contexts.includes(ctx[ctx.length - 1]);
   }
   function parse(firstTokenInLine, state, stream, style) {
-    ls = state.lineState;
+    var ls = state.lineState;
     // Sometimes we want to pick a delimiter type based on the
     // previous token's type
     var inOpening = ls.delimType === pyret_delimiter_type.OPENING
