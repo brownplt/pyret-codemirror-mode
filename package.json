@@ -1,7 +1,7 @@
 {
   "name": "pyret-codemirror-mode",
   "version": "0.0.0",
-  "dependencies": {
+  "peerDependencies": {
     "codemirror": "^5.x"
   },
   "repository": {
