@@ -30,7 +30,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
     "ORDER": true, "REACTOR": true, "SPY": true};
   const pyret_keywords =
     wordRegexp(["else if"].concat(pyret_opening_keywords_nocolon, pyret_closing_keywords,
-               ["spy", "var", "rec", "import", "include", "type", "newtype",
+               ["spy", "var", "rec", "import", "include", "type", "newtype", "hiding",
                 "from", "lazy", "shadow", "ref", "of",
                 "and", "or", "as", "else", "cases", "is==", "is=~", "is<=>", "is", "satisfies", "raises",
                 "violates", "by", "ascending", "descending", "sanitize", "using", "because"]));
