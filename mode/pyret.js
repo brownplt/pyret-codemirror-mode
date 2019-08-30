@@ -20,7 +20,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
                                           "cases", "data", "shared", "check",
                                           "except", "letrec", "lam", "method",
                                           "examples", "do", "select", "extend", "transform", "extract",
-                                          "sieve", "order", "provide", "module", "import"];
+                                          "sieve", "order", "provide:", "provide", "include", "import"];
   const pyret_opening_keywords = pyret_opening_keywords_colon.concat(pyret_opening_keywords_nocolon);
   const pyret_opening_tokens = pyret_opening_keywords.map(toToken("keyword"));
   const pyret_openers_closed_by_end = {"FUN": true, "WHEN": true, "DO": true,
@@ -31,7 +31,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
   const pyret_keywords =
     wordRegexp(["else if"].concat(pyret_opening_keywords_nocolon, pyret_closing_keywords,
                ["spy", "var", "rec", "import", "include", "type", "newtype", "hiding",
-                "from", "lazy", "shadow", "ref", "of",
+                "from", "lazy", "shadow", "ref", "of", "module",
                 "and", "or", "as", "else", "cases", "is==", "is=~", "is<=>", "is", "satisfies", "raises",
                 "violates", "by", "ascending", "descending", "sanitize", "using", "because"]));
   const pyret_booleans = wordRegexp(["true", "false"]);
@@ -75,7 +75,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
     "for": ["block", "do"], "let": ["block"], "letrec": ["block"], "type-let": ["block"],
     "cases": ["block"], "ask": ["block", "then", "otherwise"],
     "data": ["sharing", "where"], "table": ["row"], "load-table": ["sanitize", "source"],
-    "import": ["from", "as"], "provide": ["from"]
+    "import": ["from", "as"], "provide": ["from"], "include": ["from"]
   };
 
   // Subkeywords which cannot be followed by any other keywords
@@ -87,11 +87,12 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
   const pyret_special_delimiters = [{start: "(", end: ")"},
                                     {start: "[", end: "]"},
                                     {start: "{", end: "}"},
-                                    {start: "provide", end: "*"}];
+                                    {start: "provide", end: "*"},
+                                    {start: "include", end: true}];
 
   function ret(state, tokType, content, style) {
     state.lastToken = tokType; state.lastContent = content;
-    //console.log("Token:", state, tokType, content, style);
+    // console.log("Token:", state, tokType, content, style);
     return style;
   }
 
@@ -438,6 +439,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
         ls.delimType = pyret_delimiter_type.OPEN_CONTD;
       else if (inSubkw)
         ls.delimType = pyret_delimiter_type.SUB_CONTD;
+
       if (hasTop(ls.tokens, "WANTCOLON")
           || hasTop(ls.tokens, "WANTCOLONOREQUAL")
           || hasTop(ls.tokens, "WANTCOLONORBLOCK"))
@@ -523,6 +525,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       ls.deferedOpened.c++;
       ls.tokens.push("CASES", "WANTCOLONORBLOCK", "WANTCLOSEPAREN", "WANTOPENPAREN");
     } else if (state.lastToken === "data" && !hasTop(ls.tokens, "NEWPROVIDE") && !hasTop(ls.tokens, "IMPORT")) {
+      debugger
       ls.delimType = pyret_delimiter_type.OPENING;
       ls.deferedOpened.d++;
       ls.tokens.push("DATA", "WANTCOLON", "NEEDSOMETHING");
@@ -619,19 +622,39 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       ls.tokens.push("PROVIDE");
       ls.delimType = pyret_delimiter_type.OPENING;
       ls.deferedOpened.s++;
+    } else if (state.lastToken === "provide:") {
+      ls.tokens.push("NEWPROVIDE");
+      ls.delimType = pyret_delimiter_type.OPENING;
+      ls.deferedOpened.s++;
+    } else if (state.lastToken === "include") {
+      ls.tokens.push("INCLUDE", "WANTFROMORSOMETHING");
+      ls.delimType = pyret_delimiter_type.OPENING;
+      ls.deferedOpened.s++;
+    } else if (state.lastToken === "from" && hasTop(ls.tokens, ["WANTFROMORSOMETHING", "INCLUDE"])) {
+      ls.tokens.pop();
+      ls.tokens.push("NEWPROVIDE", "WANTCOLON");
+      ls.delimType = pyret_delimiter_type.OPEN_CONTD;
+    } else if (hasTop(ls.tokens, "WANTFROMORSOMETHING")) {
+      ls.tokens.pop();
+      ls.delimType = pyret_delimiter_type.CLOSING;
+      if (ls.curOpened.s > 0) ls.curOpened.s--;
+      else if (ls.deferedOpened.s > 0) ls.deferedOpened.s--;
+      else ls.curClosed.s++;
     } else if (state.lastToken === "import") {
-      ls.tokens.push("IMPORT", "WANTCOLONORAS");
+      ls.tokens.push("IMPORT", "WANTFROMORAS");
       ls.delimType = pyret_delimiter_type.OPENING;
       ls.deferedOpened.s++;
     } else if (state.lastToken === "from" && hasTop(ls.tokens, "PROVIDE")) {
       ls.tokens.pop();
       ls.tokens.push("NEWPROVIDE", "WANTCOLON");
       ls.delimType = pyret_delimiter_type.OPEN_CONTD;
-    } else if (state.lastToken === "from" && hasTop(ls.tokens, ["WANTCOLONORAS", "IMPORT"])) {
-      ls.tokens.pop();
-      ls.tokens.push("WANTCOLON");
+    } else if (state.lastToken === "from" && hasTop(ls.tokens, ["WANTFROMORAS", "IMPORT"])) {
+      ls.tokens.pop(); ls.tokens.pop();
+      if (ls.curOpened.s > 0) ls.curOpened.s--;
+      else if (ls.deferedOpened.s > 0) ls.deferedOpened.s--;
+      else ls.curClosed.s++;
       ls.delimType = pyret_delimiter_type.OPEN_CONTD;
-    } else if (state.lastToken === "as" && hasTop(ls.tokens, ["WANTCOLONORAS", "IMPORT"])) {
+    } else if (state.lastToken === "as" && hasTop(ls.tokens, ["WANTFROMORAS", "IMPORT"])) {
       ls.tokens.pop(); ls.tokens.pop();
       if (ls.curOpened.s > 0) ls.curOpened.s--;
       else if (ls.deferedOpened.s > 0) ls.deferedOpened.s--;

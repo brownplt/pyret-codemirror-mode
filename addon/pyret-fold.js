@@ -71,7 +71,7 @@
     }
     for (var i = 0; i < SPECIALDELIM.length; i++) {
       if (open === SPECIALDELIM[i].start)
-        return (close === SPECIALDELIM[i].end);
+        return (close === SPECIALDELIM[i].end) || (SPECIALDELIM[i].end === true);
     }
     return false;
   }
@@ -733,7 +733,7 @@
       if (isShallower(next)) {
         // If stack is empty, we've matched
         if (stackEmpty()) {
-          var tok = {keyword: next,
+          var tok = {token: next,
                      from: this.curRegion.start,
                      to: this.curRegion.end};
           var fail = !(!kw || toksMatch(next));
@@ -847,7 +847,7 @@
     default:
       break;
     }
-    var here = {from: Pos(start.line, start.start), to: Pos(start.line, start.end)};
+    var here = {from: Pos(start.line, start.start), to: Pos(start.line, start.end), token: start};
     return {
       ttape: ttape,
       start: start,

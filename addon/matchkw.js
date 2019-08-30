@@ -40,6 +40,11 @@
       range.to = Math.max(cur.line + 1, range.to);
       var match = CodeMirror.findMatchingKeyword(cm, cur, range);
       if (!match) return;
+      // SPECIAL CASE HACK: don't highlight shorthand tokens
+      if ((match.open.token.string === "include" || match.open.token.string === "provide")
+          && match.close.token.string !== "end") {
+        return;
+      }
       var hit = match.at == "open" ? match.open : match.close;
       var other = match.at == "close" ? match.open : match.close;
       var wordStyle; // = match.matches ? "CodeMirror-matchingbracket" : "CodeMirror-nonmatchingbracket";
