@@ -47,6 +47,16 @@ var pyretCM = CodeMirror(document.getElementById("editor"), {
   matchKeywords: true,
   matchBrackets: true,
   value:
+"provide *\n" +
+"provide:\n" +
+"  string-dict as sd,\n" +
+"  module L,\n" +
+"end\n\n" +
+"include a-module\n" +
+"include from S:\n" +
+"  string-dict, mutable-string-dict,\n" +
+"  type StringDict, type MutableStringDict\n" +
+"end\n\n" +
 "data Tree<a>:\n" +
 "  | leaf\n" +
 "  | node(v :: a, left :: Tree<a>, right :: Tree<a>)\n" +

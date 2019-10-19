@@ -60,18 +60,23 @@
     } else if (isFunctionName) {
       open = 'fun';
     }
-    close = (typeof(close) === 'string') ? close : close.string;
+    let closeString = (typeof(close) === 'string') ? close : close.string;
     if (DELIMS.indexOf(open) != -1) {
-      if (ENDDELIM.indexOf(close) != -1) {
+      if (ENDDELIM.indexOf(closeString) != -1) {
         return true;
       }
       // Otherwise, we fall back on SPECIALDELIM
       // (this allows 'provide' to be closed by either
       //  'end' or '*')
     }
+    // [TODO] Seems fragile:
+    console.log(close);
+    let closeType = (typeof(close) === 'string') ? close : close.state.lastToken;
     for (var i = 0; i < SPECIALDELIM.length; i++) {
-      if (open === SPECIALDELIM[i].start)
-        return (close === SPECIALDELIM[i].end);
+      if (open === SPECIALDELIM[i].start) {
+        console.log(`Checking if ${closeType} in ${JSON.stringify(SPECIALDELIM[i].ends)}`);
+        return SPECIALDELIM[i].ends.includes(closeType);
+      }
     }
     return false;
   }
@@ -632,6 +637,7 @@
     if (!((curType === DELIMTYPES.OPENING) || (curType === DELIMTYPES.CLOSING)))
       throw new Error("Invalid starting token: " + this.lineToks[this.current]);
     var isFunctionName = kw.type === 'function-name';
+    var kwOrig = kw; // [TODO] Delete
     kw = kw.string;
     var forward = dir === 1;
     var stack = [];
@@ -649,7 +655,7 @@
     var stackEmpty = function(){ return stack.length === 0; };
     var toksMatch = forward ?
         (function(tok){ return keyMatches(kw, tok, isFunctionName); })
-        : (function(tok){ return keyMatches(tok, kw); });
+        : (function(tok){ return keyMatches(tok, kwOrig); });
     // Should the starting token be red if the match fails?
     var failIfNoMatch = !forward;
     function isDeeper(t) {

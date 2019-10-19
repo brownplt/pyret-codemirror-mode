@@ -16,7 +16,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
         pyret_closing_keywords.map(toToken("keyword")).concat(
           pyret_closing_builtins.map(toToken("builtin")));
   const pyret_opening_keywords_colon = ["reactor", "try", "ref-graph", "block", "table", "load-table"];
-  const pyret_opening_keywords_nocolon = ["fun", "when", "for", "if", "let", "type-let", "ask", "spy",
+  const pyret_opening_keywords_nocolon = ["include from", "fun", "when", "for", "if", "let", "type-let", "ask", "spy",
                                           "cases", "data", "shared", "check",
                                           "except", "letrec", "lam", "method",
                                           "examples", "do", "select", "extend", "transform", "extract",
@@ -26,7 +26,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
   const pyret_openers_closed_by_end = {"FUN": true, "WHEN": true, "DO": true,
     "FOR": true, "IF": true, "BLOCK": true, "LET": true, "TABLE": true,
     "LOADTABLE": true, "SELECT": true, "EXTEND": true, "SIEVE": true, "TRANSFORM": true, "EXTRACT": true,
-    "ORDER": true, "REACTOR": true, "SPY": true};
+    "ORDER": true, "REACTOR": true, "SPY": true, "INCLUDEFROM": true, "PROVIDECOLON": true};
   const pyret_keywords =
     wordRegexp(["else if"].concat(pyret_opening_keywords_nocolon, pyret_closing_keywords,
                ["spy", "var", "rec", "import", "include", "type", "newtype",
@@ -82,10 +82,11 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
   };
 
   // Tokens with closing tokens other than "end" or ";"
-  const pyret_special_delimiters = [{start: "(", end: ")"},
-                                    {start: "[", end: "]"},
-                                    {start: "{", end: "}"},
-                                    {start: "provide", end: "*"}];
+  const pyret_special_delimiters = [{start: "(", ends: [")"]},
+                                    {start: "[", ends: ["]"]},
+                                    {start: "{", ends: ["}"]},
+                                    {start: "provide", ends: ["*", "name", "type"]},
+                                    {start: "include", ends: ["name", "type"]}];
 
   function ret(state, tokType, content, style) {
     state.lastToken = tokType; state.lastContent = content;
@@ -438,7 +439,8 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
         ls.delimType = pyret_delimiter_type.SUB_CONTD;
       if (hasTop(ls.tokens, "WANTCOLON")
           || hasTop(ls.tokens, "WANTCOLONOREQUAL")
-          || hasTop(ls.tokens, "WANTCOLONORBLOCK"))
+          || hasTop(ls.tokens, "WANTCOLONORBLOCK")
+          || hasTop(ls.tokens, "WANTCOLONORSTAR"))
         ls.tokens.pop();
       else if (hasTop(ls.tokens, "OBJECT")
                || hasTop(ls.tokens, "REACTOR")
@@ -614,7 +616,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
         ls.tokens.push("OBJECT", "WANTCOLON");
       }
     } else if (state.lastToken === "provide") {
-      ls.tokens.push("PROVIDE");
+      ls.tokens.push("PROVIDE", "WANTCOLONORSTAR");
       ls.delimType = pyret_delimiter_type.OPENING;
       ls.deferedOpened.s++;
     } else if (state.lastToken === "sharing") {
@@ -826,7 +828,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
           if (ls.curOpened.v > 0) ls.curOpened.v--;
           else if (ls.deferedOpened.v > 0) ls.deferedOpened.v--;
           else ls.curClosed.v++;
-        } else if (top === "PROVIDE") {
+        } else if (top === "PROVIDE" || top == "INCLUDEFROM") {
           if (ls.curOpened.s > 0) ls.curOpened.s--;
           else if (ls.deferedOpened.s > 0) ls.deferedOpened.s--;
           else ls.curClosed.s++;
@@ -871,10 +873,26 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
         ls.tokens.pop();
         top = peek(ls.tokens);
       }
-    } else if (state.lastToken === "*" && hasTop(ls.tokens, ["PROVIDE"])) {
+    } else if (state.lastToken === "*" && hasTop(ls.tokens, ["WANTCOLONORSTAR", "PROVIDE"])) {
+      ls.deferedClosed.s++;
+      ls.delimType = pyret_delimiter_type.CLOSING;
+      ls.tokens.pop(); // WANTCOLONORSTAR
+      ls.tokens.pop(); // PROVIDE
+    } else if (state.lastToken === "include from") {
+      ls.deferedOpened.s++;
+      ls.delimType = pyret_delimiter_type.OPENING;
+      ls.tokens.push("INCLUDEFROM");
+    } else if (state.lastToken == "include") {
+      ls.deferedOpened.s++;
+      ls.delimType = pyret_delimiter_type.OPENING;
+      ls.tokens.push("INCLUDE");
+    } else if (state.lastToken === "name" && hasTop(ls.tokens, ["INCLUDE"])) {
       ls.deferedClosed.s++;
       ls.delimType = pyret_delimiter_type.CLOSING;
       ls.tokens.pop();
+    } else if ((state.lastToken === "type" || state.lastToken === "name") && hasTop(ls.tokens, ["INCLUDEFROM"])) {
+      ls.delimType = pyret_delimiter_type.OPEN_CONTD;
+      ls.tokens.push("WANTCOLON");
     }
     if (stream.match(/\s*$/, false)) { // End of line; close out nestings fields
       // console.log("We think we're at an end of line");
