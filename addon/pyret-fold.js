@@ -70,11 +70,11 @@
       //  'end' or '*')
     }
     // [TODO] Seems fragile:
-    console.log(close);
+    // console.log(close);
     let closeType = (typeof(close) === 'string') ? close : close.state.lastToken;
     for (var i = 0; i < SPECIALDELIM.length; i++) {
       if (open === SPECIALDELIM[i].start) {
-        console.log(`Checking if ${closeType} in ${JSON.stringify(SPECIALDELIM[i].ends)}`);
+        // console.log(`Checking if ${closeType} in ${JSON.stringify(SPECIALDELIM[i].ends)}`);
         return SPECIALDELIM[i].ends.includes(closeType);
       }
     }
