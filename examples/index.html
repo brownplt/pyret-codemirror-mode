@@ -51,11 +51,30 @@ var pyretCM = CodeMirror(document.getElementById("editor"), {
 "provide:\n" +
 "  string-dict as sd,\n" +
 "  module L,\n" +
-"end\n\n" +
+"end\n" +
+"provide foo end\n" +
+"provide:\n" +
+"  *, type D\n" +
+"end\n" +
+"provide from S:\n" +
+"  string-dict as sd,\n" +
+"  module L,\n" +
+"end\n" +
+"\n" +
+"provide-types *\n" +
+"# [TODO]: Is this a reasonable test case?\n" +
+"provide-types {\n" +
+"  foo :: Bar,\n" +
+"  bar :: Baz,\n" +
+"}\n" +
+"\n" +
+"import foo as bar\n" +
+"import foo, bar from baz\n\n" +
 "include a-module\n" +
 "include from S:\n" +
 "  string-dict, mutable-string-dict,\n" +
-"  type StringDict, type MutableStringDict\n" +
+"  type StringDict, type MutableStringDict,\n" +
+"  data SomeData,\n" +
 "end\n\n" +
 "data Tree<a>:\n" +
 "  | leaf\n" +

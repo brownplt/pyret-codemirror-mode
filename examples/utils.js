@@ -31,6 +31,7 @@ function addLineStateToElement(elt, ls) {
   elt.innerHTML += "  CurOpened = " + ls.curOpened + "\n";
   elt.innerHTML += "  CurClosed = " + ls.curClosed + "\n";
   elt.innerHTML += "  Token Stack = " + ls.tokens + "\n";
+  elt.innerHTML += "  Last Token = " + ls.lastToken + "\n";
 }
 
 function showLineStateAtPoint(cm, elt) {
