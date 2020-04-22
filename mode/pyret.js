@@ -9,7 +9,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
     };
   }
 
-  const pyret_indent_regex = new RegExp("^[a-zA-Z_][a-zA-Z0-9$_\\-]*");
+  const pyret_ident_regex = new RegExp("^[a-zA-Z_][a-zA-Z0-9$_\\-]*");
   const pyret_closing_keywords = ["end"];
   const pyret_closing_builtins = [];
   const pyret_closing_tokens =
@@ -29,8 +29,8 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
     "ORDER": true, "REACTOR": true, "SPY": true, "INCLUDEFROM": true, "PROVIDECOLON": true};
   const pyret_keywords =
     wordRegexp(["else if"].concat(pyret_opening_keywords_nocolon, pyret_closing_keywords,
-               ["spy", "var", "rec", "import", "include", "type", "newtype",
-                "from", "lazy", "shadow", "ref", "of",
+               ["spy", "var", "rec", "import", "include", "type", "newtype", "hiding",
+                "from", "lazy", "shadow", "ref", "of", "module",
                 "and", "or", "as", "else", "cases", "is==", "is=~", "is<=>", "is", "satisfies", "raises",
                 "violates", "by", "ascending", "descending", "sanitize", "using", "because", "module", "hiding"]));
   const pyret_booleans = wordRegexp(["true", "false"]);
@@ -73,7 +73,8 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
     "fun": ["block", "where"], "method": ["block", "where"], "lam": ["block"],
     "for": ["block", "do"], "let": ["block"], "letrec": ["block"], "type-let": ["block"],
     "cases": ["block"], "ask": ["block", "then", "otherwise"],
-    "data": ["sharing", "where"], "table": ["row"], "load-table": ["sanitize", "source"]
+    "data": ["sharing", "where"], "table": ["row"], "load-table": ["sanitize", "source"],
+    "import": ["from", "as"], "provide": ["from"], "include": ["from"]
   };
 
   // Subkeywords which cannot be followed by any other keywords
@@ -92,7 +93,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
 
   function ret(state, tokType, content, style) {
     state.lastToken = tokType; state.lastContent = content;
-    //console.log("Token:", state, tokType, content, style);
+    // console.log("Token:", state, tokType, content, style);
     return style;
   }
 
@@ -205,7 +206,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
         return ret(state, 'name', match[0], 'variable');
     }
     // Level 2
-    if ((match = stream.match(pyret_indent_regex))) {
+    if ((match = stream.match(pyret_ident_regex))) {
       if (state.lastToken === "|" || state.lastToken === "::" || state.lastToken === "data"
           || state.dataNoPipeColon) {
         state.dataNoPipeColon = false;
@@ -441,6 +442,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
         ls.delimType = pyret_delimiter_type.OPEN_CONTD;
       else if (inSubkw)
         ls.delimType = pyret_delimiter_type.SUB_CONTD;
+
       if (hasTop(ls.tokens, "WANTCOLON")
           || hasTop(ls.tokens, "WANTCOLONOREQUAL")
           || hasTop(ls.tokens, "WANTCOLONORBLOCK")
@@ -625,6 +627,8 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       ls.tokens.push("PROVIDE", "WANTCOLONORSTAR");
       ls.delimType = pyret_delimiter_type.OPENING;
       ls.deferedOpened.s++;
+    // This is where the handlers for the from/as subkeywords on 'import' were. If we want
+    // highlighting, pull in code from 2c5def80
     } else if (state.lastToken === "sharing") {
       ls.curClosed.d++; ls.deferedOpened.s++;
       ls.delimType = pyret_delimiter_type.SUBKEYWORD;

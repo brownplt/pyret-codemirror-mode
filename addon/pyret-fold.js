@@ -74,8 +74,10 @@
     let closeType = (typeof(close) === 'string') ? close : close.state.lastToken;
     for (var i = 0; i < SPECIALDELIM.length; i++) {
       if (open === SPECIALDELIM[i].start) {
-        // console.log(`Checking if ${closeType} in ${JSON.stringify(SPECIALDELIM[i].ends)}`);
-        return SPECIALDELIM[i].ends.includes(closeType);
+        //console.log(`Checking if ${closeType} in ${JSON.stringify(SPECIALDELIM[i].ends)}`);
+        let ret = SPECIALDELIM[i].ends.includes(closeType);
+        //console.log(ret ? 'it is' : 'it is not');
+        return ret;
       }
     }
     return false;
@@ -739,7 +741,7 @@
       if (isShallower(next)) {
         // If stack is empty, we've matched
         if (stackEmpty()) {
-          var tok = {keyword: next,
+          var tok = {token: next,
                      from: this.curRegion.start,
                      to: this.curRegion.end};
           var fail = !(!kw || toksMatch(next));
@@ -853,7 +855,7 @@
     default:
       break;
     }
-    var here = {from: Pos(start.line, start.start), to: Pos(start.line, start.end)};
+    var here = {from: Pos(start.line, start.start), to: Pos(start.line, start.end), token: start};
     return {
       ttape: ttape,
       start: start,

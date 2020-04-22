@@ -79,7 +79,7 @@
   function nonBlankToken(tok) {
     return !(tok.type === null || /^\s*$/.test(tok.string));
   }
-  
+
   function nextNonblankTokenAfter(cm, pos, allowAtCurrent) {
     var line = pos.line;
     var toks = cm.getLineTokens(line);
