@@ -118,7 +118,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
 
     // Handle Number Literals
     const unsigned_decimal_part = "[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?";
-    const unsigned_rational_part = "[0-9]+/[0-9]+"; 
+    const unsigned_rational_part = "[0-9]+/[0-9]+";
     const number = new RegExp("^[-+]?" + unsigned_decimal_part);
     const badNumber = new RegExp("^~?[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?");
     const roughnum = new RegExp("^~[-+]?"  + "(?:" + unsigned_rational_part + "|" + unsigned_decimal_part + ")");
@@ -526,7 +526,9 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       ls.delimType = pyret_delimiter_type.OPENING;
       ls.deferedOpened.c++;
       ls.tokens.push("CASES", "WANTCOLONORBLOCK", "WANTCLOSEPAREN", "WANTOPENPAREN");
-    } else if (state.lastToken === "data" && !hasTop(ls.tokens, "INCLUDEFROMBODY")) {
+    } else if (state.lastToken === "data" && !(hasTop(ls.tokens, "INCLUDEFROMBODY")
+          || hasTop(ls.tokens, "PROVIDE")
+          || hasTop(ls.tokens, "PROVIDEFROMBODY"))) {
       ls.delimType = pyret_delimiter_type.OPENING;
       ls.deferedOpened.d++;
       ls.tokens.push("DATA", "WANTCOLON", "NEEDSOMETHING");
