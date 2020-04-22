@@ -672,31 +672,62 @@
       }
       return (sameLine && (diff === 0));
     };
+    const snapCursorBackAfterBwd = () => {
+      // Reset position
+      while(this.line < startPos.line) {this.nextLine();}
+      this.setIndex(curIdx);
+    };
+    const snapCursorBackAfterFwd = () => {
+      // Reset position
+      while(this.line > startPos.line) {this.prevLine();}
+      this.setIndex(curIdx);
+    }
+    /**
+     * What we want:
+     * (|( matches the RIGHT (of cursor)
+     * )|) matches the LEFT (of cursor)
+     * )|( matches the LEFT (of cursor)
+     * ))| matches the LEFT (of cursor)
+     * (|  matches the LEFT (of cursor)
+     * fun foo|(  matches the RIGHT of cursor
+     * else:|(    matches the RIGHT of cursor
+     *
+     * if left of cursor is closing, match it
+     * else if (right of cursor is opening), match it
+     * else match anything adjacent
+     */
     var curIdx = this.current;
+    if (dbg) {
+      this.dbg.writeLn("Checking if left at current position is closing")
+    }
+    if (matchesBwd(cur)) {
+      if (cur.state.lineState.delimType === DELIMTYPES.CLOSING)
+        return cur;
+    }
+    if (dbg) {
+      this.dbg.writeLn("Checking forward at current position");
+    }
+    snapCursorBackAfterBwd();
     if (matchesFwd(cur)) {
       return cur;
     }
     if (dbg) {
       this.dbg.writeLn("Checking right adjacent token");
     }
+    // [TODO]?
     var adj = this.next({includeContd : true, includeFoldContd : folding});
     if (matchesFwd(adj)) {
       return adj;
     }
+
     // Reset position
-    while(this.line > startPos.line) {this.prevLine();}
-    this.setIndex(curIdx);
-    // No matchable tokens to the right of the cursor. Test to see if
-    // any are to the left before returning null
+    snapCursorBackAfterFwd();
     if (dbg) {
-      this.dbg.writeLn("Checking left adjacent token");
+      this.dbg.writeLn("Checking for any on left")
     }
     if (matchesBwd(cur)) {
       return cur;
     }
-    // Reset position
-    while(this.line < startPos.line) {this.nextLine();}
-    this.setIndex(curIdx);
     return null;
   }
 
@@ -824,6 +855,9 @@
       if (isShallower(next)) {
         // If stack is empty, we've matched
         if (stackEmpty()) {
+          // if (forceNoUnderflow) {
+          //   return new IterResult(null, failIfNoMatch, []);
+          // }
           var tok = {token: next,
                      from: this.curRegion.start,
                      to: this.curRegion.end};

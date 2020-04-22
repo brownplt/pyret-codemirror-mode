@@ -193,6 +193,8 @@
   CodeMirror.commands.goBackwardSexp = function(cm) {
     var cursor = cm.getCursor();
     var cur = cm.getTokenAt(cursor);
+    var origPos = cursor.ch;
+    // Only snap back if we are *really* in the middle of whitespace
     var prev = prevNonblankTokenBefore(cm, cursor);
     if (prev &&
         ((cursor.ch === cur.start) // we're at the start of this token and should really be at the previous
@@ -211,10 +213,7 @@
     }
     var found = CodeMirror.findMatchingKeyword(cm, cursor);
     if (found && found.open.from.line == cursor.line && found.open.from.ch == cursor.ch) {
-      if (prev) {
-        prev.ch = prev.start;
-        found = CodeMirror.findMatchingKeyword(cm, prev);
-      }
+      found = null;
     }
     if (found) {
       cm.extendSelection(found.open.from, found.open.from);
