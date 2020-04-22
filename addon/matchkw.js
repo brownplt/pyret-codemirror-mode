@@ -196,6 +196,7 @@
     var prev = prevNonblankTokenBefore(cm, cursor);
     if (prev &&
         ((cursor.ch === cur.start) // we're at the start of this token and should really be at the previous
+         || !nonBlankToken(cur) // we're in the middle of a whitespace token
          || (prev.state.lastToken === "COMMENT-END"))) {
       cur = prev;
       cursor = {line: prev.line, ch: prev.start};
@@ -228,6 +229,7 @@
     if (next &&
         ((cursor.ch === cur.end) // we're done with this token; we should be on the next one
          || (next.start === cursor.ch && next.line === cur.line) // we're really at the start of the next one
+         || !nonBlankToken(cur) // we're in the middle of a whitespace token
          || (next.state.lastToken === "COMMENT-START"))) {
       cur = next; // needed because getTokenAt is left-biased
       cursor = {line: next.line, ch: next.start};
