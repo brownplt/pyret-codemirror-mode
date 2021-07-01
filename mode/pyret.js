@@ -32,7 +32,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
                ["spy", "var", "rec", "import", "include", "type", "newtype",
                 "from", "lazy", "shadow", "ref", "of",
                 "and", "or", "as", "else", "cases", "is==", "is=~", "is<=>", "is", "satisfies", "raises",
-                "violates", "by", "ascending", "descending", "sanitize", "using", "because"]));
+                "violates", "by", "ascending", "descending", "sanitize", "using", "because", "use"]));
   const pyret_booleans = wordRegexp(["true", "false"]);
   const pyret_keywords_hyphen =
     wordRegexp(["provide-types", "type-let", "does-not-raise", "raises-violates",
