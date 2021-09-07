@@ -98,6 +98,14 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
   }
 
 
+  // Handle Number Literals
+  const unsigned_decimal_part = "[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?";
+  const unsigned_rational_part = "[0-9]+/[0-9]+";
+  const number = new RegExp("^[-+]?" + unsigned_decimal_part);
+  const badNumber = new RegExp("^~?[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?");
+  const roughnum = new RegExp("^~[-+]?"  + "(?:" + unsigned_rational_part + "|" + unsigned_decimal_part + ")");
+  const restOfRoughnum = new RegExp("^[-+]?"  + "(?:" + unsigned_rational_part + "|" + unsigned_decimal_part + ")");
+  const rational = new RegExp("^[-+]?" + unsigned_rational_part);
   function tokenBase(stream, state) {
     if (stream.eatSpace())
       return "IGNORED-SPACE";
@@ -117,15 +125,11 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       }
     }
 
-    // Handle Number Literals
-    const unsigned_decimal_part = "[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?";
-    const unsigned_rational_part = "[0-9]+/[0-9]+";
-    const number = new RegExp("^[-+]?" + unsigned_decimal_part);
-    const badNumber = new RegExp("^~?[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?");
-    const roughnum = new RegExp("^~[-+]?"  + "(?:" + unsigned_rational_part + "|" + unsigned_decimal_part + ")");
-    const rational = new RegExp("^[-+]?" + unsigned_rational_part);
-    if (stream.match(roughnum))
-      return ret(state, 'number', stream.current(), 'roughnum');
+    if (stream.match(roughnum, false)) {
+      stream.match("~");
+      state.tokenizer = tokenizeRoughnum;
+      return ret(state, "ROUGHNUM-START", stream.current(), 'roughnum-start');
+    }
     else if (stream.match(rational))
       return ret(state, 'number', stream.current(), 'number');
     else if (stream.match(number))
@@ -240,6 +244,12 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       }
       return ret(state, 'string', stream.current(), 'string');
     };
+  }
+
+  function tokenizeRoughnum(stream, state) {
+    stream.match(restOfRoughnum);
+    state.tokenizer = tokenBase;
+    return ret(state, 'number', stream.current(), 'roughnum');
   }
 
   function tokenizeBlockComment(stream, state) {
