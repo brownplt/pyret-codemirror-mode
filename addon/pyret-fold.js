@@ -60,18 +60,25 @@
     } else if (isFunctionName) {
       open = 'fun';
     }
-    close = (typeof(close) === 'string') ? close : close.string;
+    let closeString = (typeof(close) === 'string') ? close : close.string;
     if (DELIMS.indexOf(open) != -1) {
-      if (ENDDELIM.indexOf(close) != -1) {
+      if (ENDDELIM.indexOf(closeString) != -1) {
         return true;
       }
       // Otherwise, we fall back on SPECIALDELIM
       // (this allows 'provide' to be closed by either
       //  'end' or '*')
     }
+    // [TODO] Seems fragile:
+    // console.log(close);
+    let closeType = (typeof(close) === 'string') ? close : close.state.lastToken;
     for (var i = 0; i < SPECIALDELIM.length; i++) {
-      if (open === SPECIALDELIM[i].start)
-        return (close === SPECIALDELIM[i].end);
+      if (open === SPECIALDELIM[i].start) {
+        //console.log(`Checking if ${closeType} in ${JSON.stringify(SPECIALDELIM[i].ends)}`);
+        let ret = SPECIALDELIM[i].ends.includes(closeType);
+        //console.log(ret ? 'it is' : 'it is not');
+        return ret;
+      }
     }
     return false;
   }
@@ -214,6 +221,11 @@
     INV_LASTSUBKEYWORDS[kw].push(key);
   });
 
+  var INV_DELIMTYPES = {};
+  Object.keys(DELIMTYPES).forEach(function(key){
+    INV_DELIMTYPES[DELIMTYPES[key]] = key;
+  });
+
   /**
    * Encapsulates an iterator over the CodeMirror instance's body
    * @param {CodeMirror} cm - The CodeMirror instance
@@ -224,10 +236,12 @@
    */
   function TokenTape(cm, line, ch, range) {
     this.line = line;
+    this.startCh = ch;
     this.cm = cm;
     this.min = range ? range.from : cm.firstLine();
     this.max = range ? range.to - 1 : cm.lastLine();
     this.lineToks = cm.getLineTokens(line);
+    this.dbg = CodeMirror.debugInternal;
     // this.current is the current index in lineToks
     if (ch <= 1){
       this.current = 0;
@@ -272,6 +286,41 @@
     else
       this.curRegion = {start : Pos(this.line, 0), end : Pos(this.line, 0)};
   }
+
+  function regionToString(r) {
+    if (!r)
+      return "null";
+    return "{start: " + posToString(r.start) + ", end: " + posToString(r.end) + "}";
+  }
+
+  function posToString(p) {
+    if (!p)
+      return "null";
+    return "{line: " + p.line + ", ch: " + p.ch + "}";
+  }
+
+  function tokenToString(t) {
+    return "{start: " + t.start + ", end: " + t.end + ", string: '" + t.string + "', type: " + t.type + ", delimType: " + INV_DELIMTYPES[t.state.lineState.delimType] + "}";
+  }
+
+  TokenTape.prototype.toString = function() {
+    var ret = "TokenTape:\n" +
+        "\tline: " + this.line + "\n" +
+        "\tmin: " + this.min + "\n" +
+        "\tmax: " + this.max + "\n" +
+        "\tlineToks: [";
+    for (var i = 0; i < this.lineToks.length; ++i) {
+      var t = this.lineToks[i];
+      if (i > 0) {
+        ret += ",\n\t           ";
+      }
+      ret += "[" + i + "] " + tokenToString(t);
+    }
+    ret += "]\n" +
+      "\tcurrent: " + this.current + "\n" +
+      "\tcurRegion: " + regionToString(this.curRegion);
+    return ret;
+  };
 
   // For future use
   /**
@@ -588,25 +637,97 @@
    */
   TokenTape.prototype.findInit = function(folding) {
     var cur = this.cur();
-    if (!cur) return null;
-    var startPos = Pos(this.line, cur.start + 1);
-    var matches = function(tok) {
-      if (!tok || !tok.type) { return false; }
-      var diff = cmpClosest(Pos(tok.line, tok.start), Pos(tok.line, tok.end), startPos)
-      var sameLine = tok.line === startPos.line;
-      return (sameLine && (diff === 0));
+    var dbg = this.dbg;
+    if (dbg) {
+      this.dbg.writeLn("cur: " + (cur && tokenToString(cur)));
     }
+    if (!cur) return null;
+    // Expected position if cursor has matchable token to right of it
+    var startPos = Pos(this.line, this.startCh + 1);
+    // As a fallback, we use this position to handle matches to the left
+    // of the cursor (but we favor tokens to the right)
+    var truePos = Pos(this.line, this.startCh);
+    if (dbg) {
+      dbg.writeLn("startPos: " + posToString(startPos));
+      dbg.writeLn("truePos: " + posToString(truePos));
+    }
+    var matchesFwd = function(tok) {
+      if (!tok || !tok.type) { return false; }
+      var diff = cmpClosest(Pos(tok.line, tok.start), Pos(tok.line, tok.end), startPos);
+      var sameLine = tok.line === startPos.line;
+      // FIXME: The fact that this check is needed is proof that the nuances of this method's by-one adjustments
+      // are all over the place. This method should be cleaned up.
+      var allowed = tok.start <= truePos.ch;
+      if (dbg) {
+        dbg.writeLn("matchFwd: " + (tok && tokenToString(tok)) + "; diff = " + diff + "; sameLine = " + sameLine + "; allowed = " + allowed);
+      }
+      return (sameLine && (diff === 0) && allowed);
+    };
+    var matchesBwd = function(tok) {
+      if (!tok || !tok.type) { return false; }
+      var diff = cmpClosest(Pos(tok.line, tok.start), Pos(tok.line, tok.end), truePos);
+      var sameLine = tok.line === startPos.line;
+      if (dbg) {
+        dbg.writeLn("matchBwd: " + (tok && tokenToString(tok)) + "; diff = " + diff + "; sameLine = " + sameLine);
+      }
+      return (sameLine && (diff === 0));
+    };
+    const snapCursorBackAfterBwd = () => {
+      // Reset position
+      while(this.line < startPos.line) {this.nextLine();}
+      this.setIndex(curIdx);
+    };
+    const snapCursorBackAfterFwd = () => {
+      // Reset position
+      while(this.line > startPos.line) {this.prevLine();}
+      this.setIndex(curIdx);
+    }
+    /**
+     * What we want:
+     * (|( matches the RIGHT (of cursor)
+     * )|) matches the LEFT (of cursor)
+     * )|( matches the LEFT (of cursor)
+     * ))| matches the LEFT (of cursor)
+     * (|  matches the LEFT (of cursor)
+     * fun foo|(  matches the RIGHT of cursor
+     * else:|(    matches the RIGHT of cursor
+     *
+     * if left of cursor is closing, match it
+     * else if (right of cursor is opening), match it
+     * else match anything adjacent
+     */
     var curIdx = this.current;
-    if (matches(cur)) {
+    if (dbg) {
+      this.dbg.writeLn("Checking if left at current position is closing")
+    }
+    if (matchesBwd(cur)) {
+      if (cur.state.lineState.delimType === DELIMTYPES.CLOSING)
+        return cur;
+    }
+    if (dbg) {
+      this.dbg.writeLn("Checking forward at current position");
+    }
+    snapCursorBackAfterBwd();
+    if (matchesFwd(cur)) {
       return cur;
     }
-    var adj = this.next({includeContd : true, includeFoldContd: folding});
-    if (matches(adj)) {
+    if (dbg) {
+      this.dbg.writeLn("Checking right adjacent token");
+    }
+    // [TODO]?
+    var adj = this.next({includeContd : true, includeFoldContd : folding});
+    if (matchesFwd(adj)) {
       return adj;
     }
+
     // Reset position
-    while(this.line > startPos.line) {this.prevLine();}
-    this.setIndex(curIdx);
+    snapCursorBackAfterFwd();
+    if (dbg) {
+      this.dbg.writeLn("Checking for any on left")
+    }
+    if (matchesBwd(cur)) {
+      return cur;
+    }
     return null;
   }
 
@@ -632,6 +753,7 @@
     if (!((curType === DELIMTYPES.OPENING) || (curType === DELIMTYPES.CLOSING)))
       throw new Error("Invalid starting token: " + this.lineToks[this.current]);
     var isFunctionName = kw.type === 'function-name';
+    var kwOrig = kw; // [TODO] Delete
     kw = kw.string;
     var forward = dir === 1;
     var stack = [];
@@ -649,7 +771,7 @@
     var stackEmpty = function(){ return stack.length === 0; };
     var toksMatch = forward ?
         (function(tok){ return keyMatches(kw, tok, isFunctionName); })
-        : (function(tok){ return keyMatches(tok, kw); });
+        : (function(tok){ return keyMatches(tok, kwOrig); });
     // Should the starting token be red if the match fails?
     var failIfNoMatch = !forward;
     function isDeeper(t) {
@@ -733,7 +855,10 @@
       if (isShallower(next)) {
         // If stack is empty, we've matched
         if (stackEmpty()) {
-          var tok = {keyword: next,
+          // if (forceNoUnderflow) {
+          //   return new IterResult(null, failIfNoMatch, []);
+          // }
+          var tok = {token: next,
                      from: this.curRegion.start,
                      to: this.curRegion.end};
           var fail = !(!kw || toksMatch(next));
@@ -809,6 +934,9 @@
   function initializeTape(cm, pos, foldOpen, range) {
     var ttape = new TokenTape(cm, pos.line, pos.ch, range);
     var start = ttape.findInit(foldOpen);
+    if (ttape.dbg) {
+      ttape.dbg.writeLn("Start token: " + (start && tokenToString(start)));
+    }
     if (!start || cmp(Pos(start.line, start.start), pos) > 0) {
       return {
         ttape: ttape,
@@ -818,6 +946,9 @@
     var startType = start.state.lineState.delimType;
     switch(startType) {
     case DELIMTYPES.NONE:
+      if (ttape.dbg) {
+        ttape.dbg.writeLn("Invalid delimiter type.");
+      }
       return {
         ttape: ttape,
         didNotMatch: true
@@ -847,7 +978,7 @@
     default:
       break;
     }
-    var here = {from: Pos(start.line, start.start), to: Pos(start.line, start.end)};
+    var here = {from: Pos(start.line, start.start), to: Pos(start.line, start.end), token: start};
     return {
       ttape: ttape,
       start: start,
@@ -858,6 +989,11 @@
   }
 
   CodeMirror.registerHelper("fold", "pyret", function(cm, start) {
+    var dbg = CodeMirror.debugInternal;
+    if (dbg) {
+      dbg.clear();
+      dbg.writeLn("Folding Debug Info:");
+    }
     // This function should fold *lines*, so we always start
     // looking at the start of the line
     var lineStart = Pos(start.line, 0);
@@ -886,9 +1022,21 @@
   });
 
   CodeMirror.findMatchingKeyword = function(cm, pos, range) {
-    var initialized = initializeTape(cm, pos, false, range);
+    var dbg = CodeMirror.debugInternal;
+    if (dbg) {
+      dbg.clear();
+      dbg.writeLn("Keyword Matching Debug Info:");
+    }
+    var initialized = initializeTape(cm, pos, true, range);
     if (initialized.didNotMatch) {
+      if (dbg) {
+        dbg.writeLn("<no match>");
+      }
       return null;
+    }
+    if (dbg) {
+      dbg.writeLn("Initial tape:");
+      dbg.writeLn(initialized.ttape.toString());
     }
     var ttape = initialized.ttape;
     var start = initialized.start;

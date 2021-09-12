@@ -79,7 +79,7 @@
   function nonBlankToken(tok) {
     return !(tok.type === null || /^\s*$/.test(tok.string));
   }
-  
+
   function nextNonblankTokenAfter(cm, pos, allowAtCurrent) {
     var line = pos.line;
     var toks = cm.getLineTokens(line);
@@ -193,9 +193,12 @@
   CodeMirror.commands.goBackwardSexp = function(cm) {
     var cursor = cm.getCursor();
     var cur = cm.getTokenAt(cursor);
+    var origPos = cursor.ch;
+    // Only snap back if we are *really* in the middle of whitespace
     var prev = prevNonblankTokenBefore(cm, cursor);
     if (prev &&
         ((cursor.ch === cur.start) // we're at the start of this token and should really be at the previous
+         || !nonBlankToken(cur) // we're in the middle of a whitespace token
          || (prev.state.lastToken === "COMMENT-END"))) {
       cur = prev;
       cursor = {line: prev.line, ch: prev.start};
@@ -210,10 +213,7 @@
     }
     var found = CodeMirror.findMatchingKeyword(cm, cursor);
     if (found && found.open.from.line == cursor.line && found.open.from.ch == cursor.ch) {
-      if (prev) {
-        prev.ch = prev.start;
-        found = CodeMirror.findMatchingKeyword(cm, prev);
-      }
+      found = null;
     }
     if (found) {
       cm.extendSelection(found.open.from, found.open.from);
@@ -228,6 +228,7 @@
     if (next &&
         ((cursor.ch === cur.end) // we're done with this token; we should be on the next one
          || (next.start === cursor.ch && next.line === cur.line) // we're really at the start of the next one
+         || !nonBlankToken(cur) // we're in the middle of a whitespace token
          || (next.state.lastToken === "COMMENT-START"))) {
       cur = next; // needed because getTokenAt is left-biased
       cursor = {line: next.line, ch: next.start};

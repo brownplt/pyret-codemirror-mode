@@ -13,6 +13,15 @@ function reindentAll(cm) {
   reindentRegion(cm, cm.firstLine(), cm.lastLine());
 }
 
+function toggleElement(id) {
+  var elt = document.getElementById(id);
+  if (elt.style.display == "none") {
+    elt.style.display = "block";
+  } else {
+    elt.style.display = "none";
+  }
+}
+
 // Registers "reindent on paste" behavior
 function registerReindentOnPaste(cm) {
   cm.on("change", function(cm, change) {
@@ -31,6 +40,7 @@ function addLineStateToElement(elt, ls) {
   elt.innerHTML += "  CurOpened = " + ls.curOpened + "\n";
   elt.innerHTML += "  CurClosed = " + ls.curClosed + "\n";
   elt.innerHTML += "  Token Stack = " + ls.tokens + "\n";
+  elt.innerHTML += "  Last Token = " + ls.lastToken + "\n";
 }
 
 function showLineStateAtPoint(cm, elt) {
@@ -57,4 +67,12 @@ function registerDebugLineState(cm, elt) {
   cm.on("cursorActivity", function(cm) {
     showLineStateAtPoint(cm, elt);
   });
+}
+
+function registerDebugInternal(elt) {
+  CodeMirror.debugInternal = {
+    clear: function() { elt.innerHTML = ""; },
+    write: function(str) { elt.innerHTML += str; },
+    writeLn: function(str) { elt.innerHTML += str + "\n"; }
+  };
 }
