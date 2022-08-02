@@ -8,6 +8,7 @@
   <script src="utils.js"></script>
   <script src="../node_modules/codemirror/lib/codemirror.js"></script>
   <script src="../node_modules/codemirror/addon/fold/foldcode.js"></script>
+  <script src="../node_modules/codemirror/addon/comment/comment.js"></script>
   <script src="../node_modules/codemirror/addon/fold/foldgutter.js"></script>
   <script src="../node_modules/codemirror/addon/selection/mark-selection.js"></script>
   <script src="../node_modules/codemirror/addon/runmode/runmode.js"></script>
@@ -38,6 +39,9 @@ html, body {
 <pre id="internal"></pre>
 </body>
 <script>
+const mac = CodeMirror.keyMap.default === CodeMirror.keyMap.macDefault;
+const modifier = mac ? "Cmd" : "Ctrl";
+
 var pyretCM = CodeMirror(document.getElementById("editor"), {
   extraKeys: {
     "Tab": "indentAuto",
@@ -45,8 +49,9 @@ var pyretCM = CodeMirror(document.getElementById("editor"), {
     "Alt-Left": "goBackwardSexp",
     "Esc Right": "goForwardSexp",
     "Alt-Right": "goForwardSexp",
-    "Ctrl-Left": "goBackwardToken",
-    "Ctrl-Right": "goForwardToken"
+    [`${modifier}-Left`]: "goBackwardToken",
+    [`${modifier}-Right`]: "goForwardToken",
+    [`${modifier}-/`]: "toggleComment",
   },
   mode: "pyret",
   lineNumbers: true,

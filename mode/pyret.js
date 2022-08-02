@@ -1069,7 +1069,12 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
                  types: pyret_delimiter_type},
 
     // FIXME: Should be deleted
-    unprefixedContexts: ["SHARED", "OBJECT"]
+    unprefixedContexts: ["SHARED", "OBJECT"],
+
+    blockCommentStart: "#|",
+    blockCommentEnd: "|#",
+    blockCommentContinue: "",
+    lineComment: "#",
 
   };
   return external;
