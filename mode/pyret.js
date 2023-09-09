@@ -1039,6 +1039,11 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       // state.lineState.print();
     },
 
+    lineComment: "#",
+    blockCommentStart: "#|",
+    blockCommentEnd: "|#",
+    blockCommentLead: "  ",
+
     copyState: copyState,
 
     token: function (stream, state) {
