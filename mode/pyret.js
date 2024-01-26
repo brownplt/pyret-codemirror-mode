@@ -133,18 +133,6 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
     else if (stream.match(badNumber))
       return ret(state, 'number', stream.current(), 'bad-number');
 
-    // if (ch === '"') {
-    //   state.tokenizer = tokenStringDouble;
-    //   state.lastToken = '"';
-    //   stream.eat('"');
-    //   return state.tokenizer(stream, state);
-    // }
-    // if (ch === "'") {
-    //   state.tokenizer = tokenStringSingle;
-    //   state.lastToken = "'";
-    //   stream.eat("'");
-    //   return state.tokenizer(stream, state);
-    // }
     const dquot_str =
       new RegExp("^\"(?:" +
                  "\\\\[01234567]{1,3}" +
@@ -222,25 +210,6 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
     return null;
   }
 
-  function mkTokenString(singleOrDouble) {
-    return function(stream, state) {
-      var insideRE = singleOrDouble === "'" ? new RegExp("[^'\\]") : new RegExp('[^"\\]');
-      var endRE = singleOrDouble === "'" ? new RegExp("'") : new RegExp('"');
-      while (!stream.eol()) {
-        stream.eatWhile(insideRE);
-        if (stream.eat('\\')) {
-          stream.next();
-          if (stream.eol())
-            return ret(state, 'string', stream.current(), 'string');
-        } else if (stream.eat(singleOrDouble)) {
-          state.tokenizer = tokenBase;
-          return ret(state, 'string', stream.current(), 'string');
-        } else
-          stream.eat(endRE);
-      }
-      return ret(state, 'string', stream.current(), 'string');
-    };
-  }
 
   function tokenizeBlockComment(stream, state) {
     if (stream.match('#|', true)) {
@@ -255,9 +224,6 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
       return ret(state, "COMMENT", state.lastContent, 'comment');
     }
   }
-
-  var tokenStringDouble = mkTokenString('"');
-  var tokenStringSingle = mkTokenString("'");
 
   function tokenStringTriple(stream, state) {
     while (!stream.eol()) {
