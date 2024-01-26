@@ -214,25 +214,6 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
     return null;
   }
 
-  function mkTokenString(singleOrDouble) {
-    return function(stream, state) {
-      var insideRE = singleOrDouble === "'" ? new RegExp("[^'\\]") : new RegExp('[^"\\]');
-      var endRE = singleOrDouble === "'" ? new RegExp("'") : new RegExp('"');
-      while (!stream.eol()) {
-        stream.eatWhile(insideRE);
-        if (stream.eat('\\')) {
-          stream.next();
-          if (stream.eol())
-            return ret(state, 'string', stream.current(), 'string');
-        } else if (stream.eat(singleOrDouble)) {
-          state.tokenizer = tokenBase;
-          return ret(state, 'string', stream.current(), 'string');
-        } else
-          stream.eat(endRE);
-      }
-      return ret(state, 'string', stream.current(), 'string');
-    };
-  }
 
   function tokenizeRoughnum(stream, state) {
     stream.match(restOfRoughnum);
