@@ -9,7 +9,7 @@ CodeMirror.defineMode("pyret", function(config, parserConfig) {
     };
   }
 
-  const pyret_ident_regex = new RegExp("^[a-zA-Z_][a-zA-Z0-9$_\\-]*");
+  const pyret_ident_regex = new RegExp("^[a-zA-Z_][a-zA-Z0-9_-]*");
   const pyret_closing_keywords = ["end"];
   const pyret_closing_builtins = [];
   const pyret_closing_tokens =
