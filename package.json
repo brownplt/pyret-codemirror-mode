@@ -4,6 +4,7 @@
   "dependencies": {
     "codemirror": "^5.x"
   },
+  "main": "mode/pyret.js",
   "repository": {
     "type": "git",
     "url": "git://github.com/brownplt/pyret-codemirror-mode"
